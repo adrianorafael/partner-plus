@@ -67,10 +67,24 @@ if ($step === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo = new PDO($dsn, $cfg['db_user'], $cfg['db_pass'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
 
         $sql = file_get_contents(__DIR__ . '/schema.sql');
+
+        // Remover linhas que são apenas comentários SQL (-- ...) para não
+        // interferir na divisão por ponto-e-vírgula. O PDO do MySQL suporta
+        // comentários inline, mas blocos de comentário antes de CREATE TABLE
+        // fazem o str_starts_with detectar o statement como comentário.
+        $lines   = explode("\n", $sql);
+        $cleaned = [];
+        foreach ($lines as $line) {
+            if (!preg_match('/^\s*--/', $line)) {
+                $cleaned[] = $line;
+            }
+        }
+        $sql = implode("\n", $cleaned);
+
         // Executar cada statement separadamente
         foreach (explode(';', $sql) as $statement) {
             $statement = trim($statement);
-            if (!empty($statement) && !str_starts_with($statement, '--')) {
+            if (!empty($statement)) {
                 $pdo->exec($statement);
             }
         }
