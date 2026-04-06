@@ -15,6 +15,9 @@ class Auth
     const STATUS_PENDING_ADMIN = 'pending_admin';
     const STATUS_ACTIVE        = 'active';
 
+    // Chave de sessão para modo de visão do admin
+    private const VIEW_AS_KEY = '_admin_view_as';
+
     /**
      * Inicia a sessão com configurações seguras.
      */
@@ -138,10 +141,15 @@ class Auth
 
     /**
      * Exige um tipo específico de usuário; redireciona se não for.
+     * Admin em modo de visão simulada passa pela verificação do tipo simulado.
      */
     public static function requireType(string ...$types): void
     {
         self::require();
+        // Admin com view-as ativo pode acessar rotas do tipo simulado
+        if (self::isAdmin() && self::viewAs() !== null && in_array(self::viewAs(), $types, true)) {
+            return;
+        }
         if (!in_array(self::type(), $types, true)) {
             header('Location: ' . APP_URL . '/dashboard');
             exit;
@@ -184,7 +192,7 @@ class Auth
     }
 
     /**
-     * Redireciona para o dashboard correto conforme o tipo de usuário.
+     * Redireciona para o dashboard correto conforme o tipo efetivo (considera view-as).
      */
     public static function redirectToDashboard(): void
     {
@@ -193,8 +201,48 @@ class Auth
             self::TYPE_CLIENT   => '/client/dashboard',
             self::TYPE_PROVIDER => '/provider/dashboard',
         ];
-        $path = $map[self::type()] ?? '/login';
+        $path = $map[self::effectiveType()] ?? '/login';
         header('Location: ' . APP_URL . $path);
         exit;
+    }
+
+    // -------------------------------------------------------
+    // View-As: Admin simulando perspectiva de outro tipo
+    // -------------------------------------------------------
+
+    /**
+     * Ativa o modo de visão simulada para o admin.
+     * Só aceita 'client' ou 'provider'.
+     */
+    public static function setViewAs(string $type): void
+    {
+        if (!self::isAdmin()) return;
+        if (!in_array($type, [self::TYPE_CLIENT, self::TYPE_PROVIDER], true)) return;
+        $_SESSION[self::VIEW_AS_KEY] = $type;
+    }
+
+    /**
+     * Desativa o modo de visão simulada.
+     */
+    public static function clearViewAs(): void
+    {
+        unset($_SESSION[self::VIEW_AS_KEY]);
+    }
+
+    /**
+     * Retorna o tipo que está sendo simulado, ou null se não há simulação.
+     */
+    public static function viewAs(): ?string
+    {
+        return $_SESSION[self::VIEW_AS_KEY] ?? null;
+    }
+
+    /**
+     * Retorna o tipo efetivo: tipo simulado (se ativo) ou tipo real do usuário.
+     * Use este método nas lógicas de negócio que devem respeitar a visão atual.
+     */
+    public static function effectiveType(): ?string
+    {
+        return self::viewAs() ?? self::type();
     }
 }

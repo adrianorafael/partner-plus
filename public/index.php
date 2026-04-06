@@ -294,11 +294,31 @@ $router->post('/reset-password', function () {
 });
 
 // -------------------------------------------------------
-// ROTA GENÉRICA: /dashboard → redireciona conforme tipo
+// ROTA GENÉRICA: /dashboard → redireciona conforme tipo efetivo
 // -------------------------------------------------------
 $router->get('/dashboard', function () {
     Auth::require();
     Auth::redirectToDashboard();
+});
+
+// -------------------------------------------------------
+// ROTAS DE VIEW-AS (admin simulando perspectiva de outro tipo)
+// -------------------------------------------------------
+
+// Ativar modo de visão simulada
+$router->post('/admin/view-as', function () {
+    Auth::requireType(Auth::TYPE_ADMIN);
+    CSRF::check();
+    $type = Helpers::sanitize($_POST['type'] ?? '');
+    Auth::setViewAs($type);
+    Auth::redirectToDashboard();
+});
+
+// Desativar modo de visão simulada
+$router->get('/admin/view-as/reset', function () {
+    Auth::require();
+    Auth::clearViewAs();
+    Helpers::redirect('/admin/dashboard');
 });
 
 // -------------------------------------------------------
