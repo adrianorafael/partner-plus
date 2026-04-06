@@ -441,10 +441,16 @@ $wizardUrl = htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES);
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">URL da aplicação</label>
+                    <?php
+                    // Auto-detecta a URL base: retira /install do caminho do script atual
+                    $detectedUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http')
+                        . '://' . $_SERVER['HTTP_HOST']
+                        . rtrim(dirname(dirname($_SERVER['SCRIPT_NAME'])), '/');
+                    ?>
                     <input type="url" name="app_url"
-                        value="<?= htmlspecialchars($_POST['app_url'] ?? (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . '/partner-plus/public', ENT_QUOTES) ?>"
+                        value="<?= htmlspecialchars($_POST['app_url'] ?? $detectedUrl, ENT_QUOTES) ?>"
                         class="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#00E5C8]">
-                    <p class="text-xs text-slate-400 mt-1">Ex: https://seudominio.com/public</p>
+                    <p class="text-xs text-slate-400 mt-1">Ex: https://seudominio.com/portal — sem barra no final, sem /public</p>
                 </div>
                 <button type="submit"
                     class="w-full py-3 rounded-xl font-bold text-sm text-[#06090F] transition-opacity hover:opacity-90"

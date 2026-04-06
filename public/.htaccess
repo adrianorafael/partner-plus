@@ -1,9 +1,4 @@
 Options -Indexes
 
-RewriteEngine On
-
-# Bloquear apenas requisições diretas externas ao /public/.
-# Quando o Apache faz rewrite interno a partir do .htaccess da raiz,
-# a variável REDIRECT_STATUS fica definida — nesse caso NÃO bloqueamos.
-RewriteCond %{ENV:REDIRECT_STATUS} ^$
-RewriteRule ^ - [F,L]
+# Acesso direto à pasta /public/ já é bloqueado pelo .htaccess da raiz.
+# Aqui apenas desabilitamos a listagem de diretório.
