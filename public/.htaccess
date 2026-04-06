@@ -1,10 +1,6 @@
 Options -Indexes
 
+# Bloquear acesso direto a este diretório quando alguém tentar acessar /public/ explicitamente
+# O roteamento correto é feito pelo .htaccess da raiz do projeto.
 RewriteEngine On
-
-# Não redirecionar arquivos/pastas que existem fisicamente
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-
-# Tudo vai para index.php (sem RewriteBase para funcionar em subdiretório)
-RewriteRule ^(.*)$ index.php [QSA,L]
+RewriteRule ^(.*)$ - [F,L]

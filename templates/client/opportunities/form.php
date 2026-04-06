@@ -10,7 +10,7 @@ $opp = $opportunity ?? [];
 <main class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
     <div class="mb-6">
-        <a href="<?= APP_URL ?>/client/opportunities" class="text-sm text-slate-400 hover:text-plus-cyan flex items-center gap-1 mb-3">
+        <a href="<?= APP_URL ?>/cliente/oportunidades" class="text-sm text-slate-400 hover:text-plus-cyan flex items-center gap-1 mb-3">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
             </svg>
@@ -28,7 +28,7 @@ $opp = $opportunity ?? [];
     <?php endif; ?>
 
     <form method="post"
-          action="<?= $isEdit ? APP_URL . '/client/opportunities/' . $opp['id'] . '/edit' : APP_URL . '/client/opportunities/create' ?>"
+          action="<?= $isEdit ? APP_URL . '/cliente/oportunidades/' . $opp['id'] . '/editar' : APP_URL . '/cliente/oportunidades/criar' ?>"
           class="space-y-6">
         <?= CSRF::field() ?>
 
@@ -190,7 +190,7 @@ $opp = $opportunity ?? [];
 
         <!-- Botões -->
         <div class="flex items-center gap-3 justify-end">
-            <a href="<?= APP_URL ?>/client/opportunities"
+            <a href="<?= APP_URL ?>/cliente/oportunidades"
                class="px-6 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors">
                 Cancelar
             </a>

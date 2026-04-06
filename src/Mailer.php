@@ -30,7 +30,7 @@ class Mailer
      */
     public static function sendEmailVerification(string $to, string $name, string $token): bool
     {
-        $link = APP_URL . '/verify-email?token=' . urlencode($token);
+        $link = APP_URL . '/verificar-email?token=' . urlencode($token);
         $subject = 'Confirme seu e-mail - Partner Plus';
 
         $body = self::layout($subject, "
@@ -56,7 +56,7 @@ class Mailer
      */
     public static function sendApprovalNotification(string $to, string $name): bool
     {
-        $link = APP_URL . '/login';
+        $link = APP_URL . '/entrar';
         $subject = 'Cadastro aprovado - Partner Plus';
 
         $body = self::layout($subject, "
@@ -78,7 +78,7 @@ class Mailer
      */
     public static function sendPasswordReset(string $to, string $name, string $token): bool
     {
-        $link = APP_URL . '/reset-password?token=' . urlencode($token);
+        $link = APP_URL . '/redefinir-senha?token=' . urlencode($token);
         $subject = 'Redefinição de senha - Partner Plus';
 
         $body = self::layout($subject, "
@@ -101,7 +101,7 @@ class Mailer
      */
     public static function sendNewRegistrationAlert(string $adminEmail, string $userName, string $company): bool
     {
-        $link = APP_URL . '/admin/users';
+        $link = APP_URL . '/admin/usuarios';
         $subject = 'Novo cadastro pendente - Partner Plus';
 
         $body = self::layout($subject, "

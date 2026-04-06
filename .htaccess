@@ -1,13 +1,23 @@
-# Bloquear listagem de diretórios
 Options -Indexes
 
 # Proteger arquivos sensíveis
-<FilesMatch "(config\.php|\.env|\.gitignore|schema\.sql)$">
+<FilesMatch "(config\.php|\.env|\.gitignore|schema\.sql|\.installed)$">
     Order allow,deny
     Deny from all
 </FilesMatch>
 
-# Redirecionar tudo para public/
 RewriteEngine On
-RewriteRule ^$ public/ [L]
-RewriteRule ^((?!public/).*)$ public/$1 [L,QSA]
+
+# Bloquear acesso direto à pasta /public/
+RewriteRule ^public(/.*)?$ - [F,L]
+
+# Servir assets estáticos diretamente de public/assets/ (sem expor o caminho)
+RewriteRule ^assets/(.+)$ public/assets/$1 [L]
+
+# Redirecionar raiz para a página de entrada
+RewriteRule ^$ entrar [R=302,L]
+
+# Tudo o mais vai para public/index.php (rewrite interno)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ public/index.php [QSA,L]

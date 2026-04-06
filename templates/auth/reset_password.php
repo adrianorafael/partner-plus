@@ -21,7 +21,7 @@
                     </div>
                     <h2 class="text-xl font-bold mb-2 font-title">Link inválido</h2>
                     <p class="text-slate-500 text-sm mb-6">Este link de redefinição é inválido ou já expirou. Links são válidos por 1 hora e só podem ser usados uma vez.</p>
-                    <a href="<?= APP_URL ?>/forgot-password"
+                    <a href="<?= APP_URL ?>/recuperar-senha"
                        class="inline-block px-8 py-3 rounded-xl font-bold text-sm text-void bg-plus-cyan hover:opacity-90 transition-opacity">
                         Solicitar novo link
                     </a>
@@ -38,7 +38,7 @@
                 </div>
                 <?php endif; ?>
 
-                <form method="post" action="<?= APP_URL ?>/reset-password" class="space-y-4">
+                <form method="post" action="<?= APP_URL ?>/redefinir-senha" class="space-y-4">
                     <?= CSRF::field() ?>
                     <input type="hidden" name="token" value="<?= Helpers::e($token ?? '') ?>">
                     <div>

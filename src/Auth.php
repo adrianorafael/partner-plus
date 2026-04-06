@@ -134,7 +134,7 @@ class Auth
     public static function require(): void
     {
         if (!self::check()) {
-            header('Location: ' . APP_URL . '/login');
+            header('Location: ' . APP_URL . '/entrar');
             exit;
         }
     }
@@ -151,7 +151,7 @@ class Auth
             return;
         }
         if (!in_array(self::type(), $types, true)) {
-            header('Location: ' . APP_URL . '/dashboard');
+            header('Location: ' . APP_URL . '/painel');
             exit;
         }
     }
@@ -197,11 +197,11 @@ class Auth
     public static function redirectToDashboard(): void
     {
         $map = [
-            self::TYPE_ADMIN    => '/admin/dashboard',
-            self::TYPE_CLIENT   => '/client/dashboard',
-            self::TYPE_PROVIDER => '/provider/dashboard',
+            self::TYPE_ADMIN    => '/admin/painel',
+            self::TYPE_CLIENT   => '/cliente/painel',
+            self::TYPE_PROVIDER => '/parceiro/painel',
         ];
-        $path = $map[self::effectiveType()] ?? '/login';
+        $path = $map[self::effectiveType()] ?? '/entrar';
         header('Location: ' . APP_URL . $path);
         exit;
     }

@@ -36,7 +36,7 @@
             </div>
         </div>
 
-        <form method="post" action="<?= APP_URL ?>/profile" class="space-y-4">
+        <form method="post" action="<?= APP_URL ?>/perfil" class="space-y-4">
             <?= CSRF::field() ?>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

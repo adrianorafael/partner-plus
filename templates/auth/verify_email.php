@@ -15,7 +15,7 @@
                 <p class="text-slate-500 text-sm mb-6">
                     Seu e-mail foi verificado com sucesso. Seu cadastro está em análise e você receberá uma notificação quando for aprovado pelo administrador.
                 </p>
-                <a href="<?= APP_URL ?>/login"
+                <a href="<?= APP_URL ?>/entrar"
                    class="inline-block px-8 py-3 rounded-xl font-bold text-sm text-void bg-plus-cyan hover:opacity-90 transition-opacity">
                     Ir para o Login
                 </a>
@@ -29,7 +29,7 @@
                 <p class="text-slate-500 text-sm mb-6">
                     O link de verificação é inválido ou expirou. Links são válidos por 24 horas.
                 </p>
-                <a href="<?= APP_URL ?>/register"
+                <a href="<?= APP_URL ?>/cadastrar"
                    class="inline-block px-8 py-3 rounded-xl font-bold text-sm text-void bg-plus-cyan hover:opacity-90 transition-opacity">
                     Fazer novo cadastro
                 </a>

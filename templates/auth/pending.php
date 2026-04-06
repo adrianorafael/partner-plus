@@ -28,7 +28,7 @@
                     <p class="text-sm text-slate-600">Acesse a plataforma com seu e-mail e senha</p>
                 </div>
             </div>
-            <a href="<?= APP_URL ?>/login" class="inline-block mt-6 text-sm text-plus-cyan hover:underline">← Ir para o Login</a>
+            <a href="<?= APP_URL ?>/entrar" class="inline-block mt-6 text-sm text-plus-cyan hover:underline">← Ir para o Login</a>
         </div>
     </div>
 </div>

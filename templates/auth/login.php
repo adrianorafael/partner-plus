@@ -37,7 +37,7 @@
             </div>
             <?php endif; ?>
 
-            <form method="post" action="<?= APP_URL ?>/login" class="space-y-4">
+            <form method="post" action="<?= APP_URL ?>/entrar" class="space-y-4">
                 <?= CSRF::field() ?>
 
                 <div>
@@ -51,7 +51,7 @@
                 <div>
                     <div class="flex items-center justify-between mb-1">
                         <label for="password" class="block text-sm font-medium text-slate-700">Senha</label>
-                        <a href="<?= APP_URL ?>/forgot-password" class="text-xs text-plus-cyan hover:underline">Esqueceu a senha?</a>
+                        <a href="<?= APP_URL ?>/recuperar-senha" class="text-xs text-plus-cyan hover:underline">Esqueceu a senha?</a>
                     </div>
                     <div class="relative">
                         <input type="password" id="password" name="password" required autocomplete="current-password"
@@ -74,7 +74,7 @@
 
             <p class="text-center text-sm text-slate-500 mt-6">
                 Não tem uma conta?
-                <a href="<?= APP_URL ?>/register" class="text-plus-cyan font-medium hover:underline">Cadastre-se</a>
+                <a href="<?= APP_URL ?>/cadastrar" class="text-plus-cyan font-medium hover:underline">Cadastre-se</a>
             </p>
         </div>
 

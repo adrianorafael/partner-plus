@@ -13,7 +13,7 @@
 
     <!-- Filtros -->
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-4">
-        <form method="get" action="<?= APP_URL ?>/admin/users" class="flex flex-wrap gap-3 items-end">
+        <form method="get" action="<?= APP_URL ?>/admin/usuarios" class="flex flex-wrap gap-3 items-end">
             <div>
                 <label class="block text-xs text-slate-500 mb-1">Status</label>
                 <select name="status" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-plus-cyan">
@@ -98,14 +98,14 @@
                         <td class="px-4 py-4">
                             <div class="flex items-center gap-2 justify-end">
                                 <?php if ($u['status'] === 'pending_admin'): ?>
-                                <form method="post" action="<?= APP_URL ?>/admin/users/<?= $u['id'] ?>/approve">
+                                <form method="post" action="<?= APP_URL ?>/admin/usuarios/<?= $u['id'] ?>/aprovar">
                                     <?= CSRF::field() ?>
                                     <button type="submit"
                                         class="px-3 py-1.5 rounded-lg text-xs font-bold text-void bg-plus-cyan hover:opacity-90 transition-opacity">
                                         Aprovar
                                     </button>
                                 </form>
-                                <form method="post" action="<?= APP_URL ?>/admin/users/<?= $u['id'] ?>/reject"
+                                <form method="post" action="<?= APP_URL ?>/admin/usuarios/<?= $u['id'] ?>/rejeitar"
                                       onsubmit="return confirm('Remover este usuário?')">
                                     <?= CSRF::field() ?>
                                     <button type="submit"
@@ -114,7 +114,7 @@
                                     </button>
                                 </form>
                                 <?php elseif ($u['status'] === 'active' && $u['type'] !== 'admin'): ?>
-                                <form method="post" action="<?= APP_URL ?>/admin/users/<?= $u['id'] ?>/deactivate"
+                                <form method="post" action="<?= APP_URL ?>/admin/usuarios/<?= $u['id'] ?>/desativar"
                                       onsubmit="return confirm('Desativar este usuário?')">
                                     <?= CSRF::field() ?>
                                     <button type="submit"

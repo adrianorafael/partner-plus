@@ -21,7 +21,7 @@
                     </div>
                     <h2 class="text-xl font-bold mb-2 font-title">Verifique seu e-mail</h2>
                     <p class="text-slate-500 text-sm">Se o e-mail informado estiver cadastrado, você receberá um link de redefinição em instantes. O link é válido por 1 hora.</p>
-                    <a href="<?= APP_URL ?>/login" class="inline-block mt-6 text-sm text-plus-cyan hover:underline">← Voltar ao login</a>
+                    <a href="<?= APP_URL ?>/entrar" class="inline-block mt-6 text-sm text-plus-cyan hover:underline">← Voltar ao login</a>
                 </div>
             <?php else: ?>
                 <h2 class="text-xl font-bold mb-1 font-title">Recuperar senha</h2>
@@ -33,7 +33,7 @@
                 </div>
                 <?php endif; ?>
 
-                <form method="post" action="<?= APP_URL ?>/forgot-password" class="space-y-4">
+                <form method="post" action="<?= APP_URL ?>/recuperar-senha" class="space-y-4">
                     <?= CSRF::field() ?>
                     <div>
                         <label for="email" class="block text-sm font-medium text-slate-700 mb-1">E-mail corporativo</label>
@@ -49,7 +49,7 @@
                 </form>
 
                 <p class="text-center text-sm text-slate-500 mt-6">
-                    <a href="<?= APP_URL ?>/login" class="text-plus-cyan hover:underline">← Voltar ao login</a>
+                    <a href="<?= APP_URL ?>/entrar" class="text-plus-cyan hover:underline">← Voltar ao login</a>
                 </p>
             <?php endif; ?>
         </div>

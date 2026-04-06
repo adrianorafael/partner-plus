@@ -9,7 +9,7 @@
             <h2 class="text-2xl font-bold font-title">Minhas Oportunidades</h2>
             <p class="text-slate-500 text-sm mt-1">Gerencie todas as oportunidades da sua empresa</p>
         </div>
-        <a href="<?= APP_URL ?>/client/opportunities/create"
+        <a href="<?= APP_URL ?>/cliente/oportunidades/criar"
            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-void bg-plus-cyan hover:opacity-90 transition-opacity">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -22,7 +22,7 @@
 
     <!-- Filtros -->
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-4">
-        <form method="get" action="<?= APP_URL ?>/client/opportunities" class="flex flex-wrap gap-3 items-end">
+        <form method="get" action="<?= APP_URL ?>/cliente/oportunidades" class="flex flex-wrap gap-3 items-end">
             <div>
                 <label class="block text-xs text-slate-500 mb-1">Status</label>
                 <select name="status" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-plus-cyan">
@@ -44,7 +44,7 @@
                 Filtrar
             </button>
             <?php if (!empty($_GET['status']) || !empty($_GET['type'])): ?>
-            <a href="<?= APP_URL ?>/client/opportunities" class="text-xs text-slate-400 hover:text-slate-600 self-end mb-2">Limpar filtros</a>
+            <a href="<?= APP_URL ?>/cliente/oportunidades" class="text-xs text-slate-400 hover:text-slate-600 self-end mb-2">Limpar filtros</a>
             <?php endif; ?>
         </form>
     </div>
@@ -54,7 +54,7 @@
         <?php if (empty($opportunities)): ?>
         <div class="px-6 py-16 text-center">
             <p class="text-slate-400 text-sm">Nenhuma oportunidade encontrada.</p>
-            <a href="<?= APP_URL ?>/client/opportunities/create"
+            <a href="<?= APP_URL ?>/cliente/oportunidades/criar"
                class="inline-block mt-4 text-sm text-plus-cyan font-medium hover:underline">
                 Cadastrar primeira oportunidade →
             </a>
@@ -103,7 +103,7 @@
                         </td>
                         <td class="px-4 py-4">
                             <div class="flex items-center gap-2 justify-end">
-                                <a href="<?= APP_URL ?>/client/opportunities/<?= $opp['id'] ?>/edit"
+                                <a href="<?= APP_URL ?>/cliente/oportunidades/<?= $opp['id'] ?>/editar"
                                    class="p-1.5 rounded-lg text-slate-400 hover:text-plus-cyan hover:bg-cyan-50 transition-colors" title="Editar">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -111,7 +111,7 @@
                                     </svg>
                                 </a>
                                 <?php if ($opp['status'] === 'active'): ?>
-                                <form method="post" action="<?= APP_URL ?>/client/opportunities/<?= $opp['id'] ?>/close"
+                                <form method="post" action="<?= APP_URL ?>/cliente/oportunidades/<?= $opp['id'] ?>/encerrar"
                                       onsubmit="return confirm('Encerrar esta oportunidade?')">
                                     <?= CSRF::field() ?>
                                     <button type="submit"

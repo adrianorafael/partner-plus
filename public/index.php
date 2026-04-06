@@ -16,10 +16,8 @@ spl_autoload_register(function (string $class): void {
 // Carregar configuração (gerada pelo wizard de instalação)
 $configFile = dirname(__DIR__) . '/config/config.php';
 if (!file_exists($configFile)) {
-    // Redirecionar para o wizard se não configurado
     $installUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST']
-        . str_replace('/public/index.php', '', $_SERVER['SCRIPT_NAME'])
-        . '/install/';
+        . rtrim(dirname(dirname($_SERVER['SCRIPT_NAME'])), '/') . '/install/';
     header('Location: ' . $installUrl);
     exit;
 }
@@ -28,28 +26,29 @@ require_once $configFile;
 // Iniciar sessão segura
 Auth::startSession();
 
-// Definir base path para o router (remove /public do URI)
-$scriptDir   = dirname($_SERVER['SCRIPT_NAME']); // ex: /partner-plus/public
-$router = new Router($scriptDir);
+// Base path extraído do APP_URL configurado (ex: "/portal" de "https://plus-br.com/portal")
+// Isso garante que o roteamento funcione independente do SCRIPT_NAME,
+// que pode variar conforme a configuração do servidor.
+$appBasePath = rtrim(parse_url(APP_URL, PHP_URL_PATH) ?? '', '/');
+$router = new Router($appBasePath);
 
 // -------------------------------------------------------
 // ROTAS PÚBLICAS
 // -------------------------------------------------------
 
-// Redirecionar raiz para login ou dashboard
 $router->get('/', function () {
     if (Auth::check()) {
         Auth::redirectToDashboard();
     }
-    Helpers::redirect('/login');
+    Helpers::redirect('/entrar');
 });
 
-$router->get('/login', function () {
+$router->get('/entrar', function () {
     if (Auth::check()) Auth::redirectToDashboard();
     include dirname(__DIR__) . '/templates/auth/login.php';
 });
 
-$router->post('/login', function () {
+$router->post('/entrar', function () {
     CSRF::check();
     $email    = Helpers::sanitize($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
@@ -57,11 +56,9 @@ $router->post('/login', function () {
     $result = Auth::login($email, $password);
 
     if ($result === null) {
-        if (Auth::isLoginBlocked($email)) {
-            $error = 'Muitas tentativas de login. Aguarde 15 minutos.';
-        } else {
-            $error = 'E-mail ou senha incorretos.';
-        }
+        $error = Auth::isLoginBlocked($email)
+            ? 'Muitas tentativas de login. Aguarde 15 minutos.'
+            : 'E-mail ou senha incorretos.';
         include dirname(__DIR__) . '/templates/auth/login.php';
         return;
     }
@@ -75,66 +72,46 @@ $router->post('/login', function () {
     Auth::redirectToDashboard();
 });
 
-$router->get('/logout', function () {
+$router->get('/sair', function () {
     Auth::logout();
-    Helpers::redirect('/login');
+    Helpers::redirect('/entrar');
 });
 
-$router->get('/register', function () {
+$router->get('/cadastrar', function () {
     if (Auth::check()) Auth::redirectToDashboard();
     include dirname(__DIR__) . '/templates/auth/register.php';
 });
 
-$router->post('/register', function () {
+$router->post('/cadastrar', function () {
     CSRF::check();
 
     $errors = [];
-    $type              = Helpers::sanitize($_POST['type'] ?? '');
-    $cnpj              = Helpers::cleanCNPJ($_POST['cnpj'] ?? '');
-    $companyName       = Helpers::sanitize($_POST['company_name'] ?? '');
-    $representativeName= Helpers::sanitize($_POST['representative_name'] ?? '');
-    $role              = Helpers::sanitize($_POST['role'] ?? '');
-    $email             = strtolower(Helpers::sanitize($_POST['email'] ?? ''));
-    $phone             = preg_replace('/\D/', '', $_POST['phone'] ?? '');
-    $password          = $_POST['password'] ?? '';
-    $passwordConfirm   = $_POST['password_confirm'] ?? '';
+    $type               = Helpers::sanitize($_POST['type'] ?? '');
+    $cnpj               = Helpers::cleanCNPJ($_POST['cnpj'] ?? '');
+    $companyName        = Helpers::sanitize($_POST['company_name'] ?? '');
+    $representativeName = Helpers::sanitize($_POST['representative_name'] ?? '');
+    $role               = Helpers::sanitize($_POST['role'] ?? '');
+    $email              = strtolower(Helpers::sanitize($_POST['email'] ?? ''));
+    $phone              = preg_replace('/\D/', '', $_POST['phone'] ?? '');
+    $password           = $_POST['password'] ?? '';
+    $passwordConfirm    = $_POST['password_confirm'] ?? '';
 
-    // Validações
-    if (!in_array($type, ['client', 'provider'])) {
-        $errors[] = 'Selecione o tipo de conta.';
-    }
-    if (!Helpers::validateCNPJ($cnpj)) {
-        $errors[] = 'CNPJ inválido.';
-    }
-    if (empty($companyName)) {
-        $errors[] = 'Nome da empresa é obrigatório.';
-    }
-    if (empty($representativeName)) {
-        $errors[] = 'Seu nome é obrigatório.';
-    }
-    if (empty($role)) {
-        $errors[] = 'Cargo é obrigatório.';
-    }
+    if (!in_array($type, ['client', 'provider'])) $errors[] = 'Selecione o tipo de conta.';
+    if (!Helpers::validateCNPJ($cnpj))             $errors[] = 'CNPJ inválido.';
+    if (empty($companyName))                        $errors[] = 'Nome da empresa é obrigatório.';
+    if (empty($representativeName))                 $errors[] = 'Seu nome é obrigatório.';
+    if (empty($role))                               $errors[] = 'Cargo é obrigatório.';
     $emailError = Helpers::validateCorporateEmail($email);
-    if ($emailError) {
-        $errors[] = $emailError;
-    }
-    if (strlen($phone) < 10) {
-        $errors[] = 'Telefone inválido.';
-    }
-    if (strlen($password) < 8) {
-        $errors[] = 'A senha deve ter no mínimo 8 caracteres.';
-    }
-    if ($password !== $passwordConfirm) {
-        $errors[] = 'As senhas não coincidem.';
-    }
+    if ($emailError)                                $errors[] = $emailError;
+    if (strlen($phone) < 10)                        $errors[] = 'Telefone inválido.';
+    if (strlen($password) < 8)                      $errors[] = 'A senha deve ter no mínimo 8 caracteres.';
+    if ($password !== $passwordConfirm)             $errors[] = 'As senhas não coincidem.';
 
     if (!empty($errors)) {
         include dirname(__DIR__) . '/templates/auth/register.php';
         return;
     }
 
-    // Verificar duplicidade de e-mail
     $existing = Database::query('SELECT id FROM users WHERE email = ? LIMIT 1', [$email])->fetch();
     if ($existing) {
         $errors[] = 'Este e-mail já está cadastrado.';
@@ -142,7 +119,6 @@ $router->post('/register', function () {
         return;
     }
 
-    // Criar usuário
     $hash  = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
     $token = Helpers::generateToken();
 
@@ -153,25 +129,23 @@ $router->post('/register', function () {
     );
     $userId = (int)Database::lastInsertId();
 
-    // Token de verificação de e-mail (expira em 24h)
     Database::query(
         'INSERT INTO email_verifications (user_id, token, expires_at) VALUES (?, ?, ?)',
         [$userId, $token, date('Y-m-d H:i:s', strtotime('+24 hours'))]
     );
 
-    // Enviar e-mail de verificação
     Mailer::sendEmailVerification($email, $representativeName, $token);
 
-    Helpers::redirect('/register/pending?email=' . urlencode($email));
+    Helpers::redirect('/cadastrar/aguardando?email=' . urlencode($email));
 });
 
-$router->get('/register/pending', function () {
+$router->get('/cadastrar/aguardando', function () {
     $email = Helpers::sanitize($_GET['email'] ?? '');
     include dirname(__DIR__) . '/templates/auth/pending.php';
 });
 
-$router->get('/verify-email', function () {
-    $token  = Helpers::sanitize($_GET['token'] ?? '');
+$router->get('/verificar-email', function () {
+    $token    = Helpers::sanitize($_GET['token'] ?? '');
     $verified = false;
 
     if ($token) {
@@ -185,20 +159,14 @@ $router->get('/verify-email', function () {
         )->fetch();
 
         if ($row) {
-            // Atualizar status do usuário
             Database::query(
                 "UPDATE users SET status = ? WHERE id = ? AND status = ?",
                 [Auth::STATUS_PENDING_ADMIN, $row['user_id'], Auth::STATUS_PENDING_EMAIL]
             );
-            // Remover token usado
             Database::query('DELETE FROM email_verifications WHERE id = ?', [$row['id']]);
-
             $verified = true;
 
-            // Notificar admin
-            $admin = Database::query(
-                "SELECT email FROM users WHERE type = 'admin' LIMIT 1"
-            )->fetch();
+            $admin = Database::query("SELECT email FROM users WHERE type = 'admin' LIMIT 1")->fetch();
             if ($admin) {
                 Mailer::sendNewRegistrationAlert($admin['email'], $row['representative_name'], $row['company_name']);
             }
@@ -208,14 +176,14 @@ $router->get('/verify-email', function () {
     include dirname(__DIR__) . '/templates/auth/verify_email.php';
 });
 
-$router->get('/forgot-password', function () {
+$router->get('/recuperar-senha', function () {
     include dirname(__DIR__) . '/templates/auth/forgot_password.php';
 });
 
-$router->post('/forgot-password', function () {
+$router->post('/recuperar-senha', function () {
     CSRF::check();
     $email = strtolower(Helpers::sanitize($_POST['email'] ?? ''));
-    $sent  = true; // Sempre mostrar sucesso (evita enumeração de e-mails)
+    $sent  = true;
 
     $user = Database::query(
         "SELECT id, representative_name FROM users WHERE email = ? AND status = 'active' LIMIT 1",
@@ -223,9 +191,7 @@ $router->post('/forgot-password', function () {
     )->fetch();
 
     if ($user) {
-        // Invalidar tokens anteriores
         Database::query('DELETE FROM password_resets WHERE user_id = ?', [$user['id']]);
-
         $token = Helpers::generateToken();
         Database::query(
             'INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)',
@@ -237,7 +203,7 @@ $router->post('/forgot-password', function () {
     include dirname(__DIR__) . '/templates/auth/forgot_password.php';
 });
 
-$router->get('/reset-password', function () {
+$router->get('/redefinir-senha', function () {
     $token   = Helpers::sanitize($_GET['token'] ?? '');
     $invalid = false;
 
@@ -254,7 +220,7 @@ $router->get('/reset-password', function () {
     include dirname(__DIR__) . '/templates/auth/reset_password.php';
 });
 
-$router->post('/reset-password', function () {
+$router->post('/redefinir-senha', function () {
     CSRF::check();
     $token           = Helpers::sanitize($_POST['token'] ?? '');
     $password        = $_POST['password'] ?? '';
@@ -273,12 +239,8 @@ $router->post('/reset-password', function () {
         return;
     }
 
-    if (strlen($password) < 8) {
-        $errors[] = 'A senha deve ter no mínimo 8 caracteres.';
-    }
-    if ($password !== $passwordConfirm) {
-        $errors[] = 'As senhas não coincidem.';
-    }
+    if (strlen($password) < 8)     $errors[] = 'A senha deve ter no mínimo 8 caracteres.';
+    if ($password !== $passwordConfirm) $errors[] = 'As senhas não coincidem.';
 
     if (!empty($errors)) {
         include dirname(__DIR__) . '/templates/auth/reset_password.php';
@@ -290,23 +252,21 @@ $router->post('/reset-password', function () {
     Database::query('UPDATE password_resets SET used = 1 WHERE id = ?', [$row['id']]);
 
     Helpers::flash('success', 'Senha redefinida com sucesso! Faça login com a nova senha.');
-    Helpers::redirect('/login');
+    Helpers::redirect('/entrar');
 });
 
 // -------------------------------------------------------
-// ROTA GENÉRICA: /dashboard → redireciona conforme tipo efetivo
+// PAINEL → redireciona conforme tipo efetivo
 // -------------------------------------------------------
-$router->get('/dashboard', function () {
+$router->get('/painel', function () {
     Auth::require();
     Auth::redirectToDashboard();
 });
 
 // -------------------------------------------------------
-// ROTAS DE VIEW-AS (admin simulando perspectiva de outro tipo)
+// VIEW-AS (admin simulando perspectiva de outro tipo)
 // -------------------------------------------------------
-
-// Ativar modo de visão simulada
-$router->post('/admin/view-as', function () {
+$router->post('/admin/visualizar', function () {
     Auth::requireType(Auth::TYPE_ADMIN);
     CSRF::check();
     $type = Helpers::sanitize($_POST['type'] ?? '');
@@ -314,17 +274,16 @@ $router->post('/admin/view-as', function () {
     Auth::redirectToDashboard();
 });
 
-// Desativar modo de visão simulada
-$router->get('/admin/view-as/reset', function () {
+$router->get('/admin/visualizar/reset', function () {
     Auth::require();
     Auth::clearViewAs();
-    Helpers::redirect('/admin/dashboard');
+    Helpers::redirect('/admin/painel');
 });
 
 // -------------------------------------------------------
 // ROTAS DO CLIENTE
 // -------------------------------------------------------
-$router->get('/client/dashboard', function () {
+$router->get('/cliente/painel', function () {
     Auth::requireType(Auth::TYPE_CLIENT);
     $user  = Auth::user();
     $stats = [
@@ -346,7 +305,7 @@ $router->get('/client/dashboard', function () {
     include dirname(__DIR__) . '/templates/client/dashboard.php';
 });
 
-$router->get('/client/opportunities', function () {
+$router->get('/cliente/oportunidades', function () {
     Auth::requireType(Auth::TYPE_CLIENT);
     $status = Helpers::sanitize($_GET['status'] ?? '');
     $type   = Helpers::sanitize($_GET['type'] ?? '');
@@ -354,48 +313,42 @@ $router->get('/client/opportunities', function () {
     $sql    = "SELECT * FROM opportunities WHERE client_id = ?";
     $params = [Auth::id()];
 
-    if ($status && in_array($status, ['active', 'closed'])) {
-        $sql .= " AND status = ?";
-        $params[] = $status;
-    }
-    if ($type && in_array($type, ['software', 'service'])) {
-        $sql .= " AND type = ?";
-        $params[] = $type;
-    }
+    if ($status && in_array($status, ['active', 'closed'])) { $sql .= " AND status = ?"; $params[] = $status; }
+    if ($type   && in_array($type, ['software', 'service'])) { $sql .= " AND type = ?";   $params[] = $type; }
     $sql .= " ORDER BY created_at DESC";
 
     $opportunities = Database::query($sql, $params)->fetchAll();
     include dirname(__DIR__) . '/templates/client/opportunities/index.php';
 });
 
-$router->get('/client/opportunities/create', function () {
+$router->get('/cliente/oportunidades/criar', function () {
     Auth::requireType(Auth::TYPE_CLIENT);
     include dirname(__DIR__) . '/templates/client/opportunities/form.php';
 });
 
-$router->post('/client/opportunities/create', function () {
+$router->post('/cliente/oportunidades/criar', function () {
     Auth::requireType(Auth::TYPE_CLIENT);
     CSRF::check();
 
     $errors = [];
-    $title            = Helpers::sanitize($_POST['title'] ?? '');
-    $type             = Helpers::sanitize($_POST['type'] ?? '');
-    $description      = Helpers::sanitize($_POST['description'] ?? '');
-    $startDate        = Helpers::sanitize($_POST['start_date'] ?? '');
-    $endDate          = Helpers::sanitize($_POST['end_date'] ?? '');
-    $targeting        = Helpers::sanitize($_POST['targeting'] ?? 'open');
-    $targetProvider   = $targeting === 'specific' ? Helpers::sanitize($_POST['target_provider'] ?? '') : null;
-    $contactType      = Helpers::sanitize($_POST['contact_person_type'] ?? 'self');
-    $contactName      = $contactType === 'other' ? Helpers::sanitize($_POST['contact_name'] ?? '') : null;
-    $contactRole      = $contactType === 'other' ? Helpers::sanitize($_POST['contact_role'] ?? '') : null;
-    $contactEmail     = $contactType === 'other' ? strtolower(Helpers::sanitize($_POST['contact_email'] ?? '')) : null;
-    $contactPhone     = $contactType === 'other' ? preg_replace('/\D/', '', $_POST['contact_phone'] ?? '') : null;
+    $title           = Helpers::sanitize($_POST['title'] ?? '');
+    $type            = Helpers::sanitize($_POST['type'] ?? '');
+    $description     = Helpers::sanitize($_POST['description'] ?? '');
+    $startDate       = Helpers::sanitize($_POST['start_date'] ?? '');
+    $endDate         = Helpers::sanitize($_POST['end_date'] ?? '');
+    $targeting       = Helpers::sanitize($_POST['targeting'] ?? 'open');
+    $targetProvider  = $targeting === 'specific' ? Helpers::sanitize($_POST['target_provider'] ?? '') : null;
+    $contactType     = Helpers::sanitize($_POST['contact_person_type'] ?? 'self');
+    $contactName     = $contactType === 'other' ? Helpers::sanitize($_POST['contact_name'] ?? '') : null;
+    $contactRole     = $contactType === 'other' ? Helpers::sanitize($_POST['contact_role'] ?? '') : null;
+    $contactEmail    = $contactType === 'other' ? strtolower(Helpers::sanitize($_POST['contact_email'] ?? '')) : null;
+    $contactPhone    = $contactType === 'other' ? preg_replace('/\D/', '', $_POST['contact_phone'] ?? '') : null;
 
-    if (empty($title)) $errors[] = 'Nome da oportunidade é obrigatório.';
+    if (empty($title))                             $errors[] = 'Nome da oportunidade é obrigatório.';
     if (!in_array($type, ['software', 'service'])) $errors[] = 'Selecione o tipo.';
-    if (empty($description)) $errors[] = 'Descrição é obrigatória.';
-    if (!Helpers::validateDate($startDate)) $errors[] = 'Data inicial inválida.';
-    if (!Helpers::validateDate($endDate)) $errors[] = 'Data final inválida.';
+    if (empty($description))                       $errors[] = 'Descrição é obrigatória.';
+    if (!Helpers::validateDate($startDate))        $errors[] = 'Data inicial inválida.';
+    if (!Helpers::validateDate($endDate))          $errors[] = 'Data final inválida.';
     if ($startDate && $endDate && $endDate < $startDate) $errors[] = 'A data final deve ser posterior à inicial.';
     if ($targeting === 'specific' && empty($targetProvider)) $errors[] = 'Informe o nome do fornecedor específico.';
     if ($contactType === 'other') {
@@ -418,10 +371,10 @@ $router->post('/client/opportunities/create', function () {
     );
 
     Helpers::flash('success', 'Oportunidade publicada com sucesso!');
-    Helpers::redirect('/client/opportunities');
+    Helpers::redirect('/cliente/oportunidades');
 });
 
-$router->get('/client/opportunities/{id}/edit', function (string $id) {
+$router->get('/cliente/oportunidades/{id}/editar', function (string $id) {
     Auth::requireType(Auth::TYPE_CLIENT);
     $opportunity = Database::query(
         "SELECT * FROM opportunities WHERE id = ? AND client_id = ? LIMIT 1",
@@ -435,7 +388,7 @@ $router->get('/client/opportunities/{id}/edit', function (string $id) {
     include dirname(__DIR__) . '/templates/client/opportunities/form.php';
 });
 
-$router->post('/client/opportunities/{id}/edit', function (string $id) {
+$router->post('/cliente/oportunidades/{id}/editar', function (string $id) {
     Auth::requireType(Auth::TYPE_CLIENT);
     CSRF::check();
 
@@ -443,29 +396,26 @@ $router->post('/client/opportunities/{id}/edit', function (string $id) {
         "SELECT * FROM opportunities WHERE id = ? AND client_id = ? LIMIT 1",
         [(int)$id, Auth::id()]
     )->fetch();
-    if (!$opportunity) {
-        Helpers::redirect('/client/opportunities');
-        return;
-    }
+    if (!$opportunity) { Helpers::redirect('/cliente/oportunidades'); return; }
 
     $errors = [];
-    $title            = Helpers::sanitize($_POST['title'] ?? '');
-    $type             = Helpers::sanitize($_POST['type'] ?? '');
-    $description      = Helpers::sanitize($_POST['description'] ?? '');
-    $startDate        = Helpers::sanitize($_POST['start_date'] ?? '');
-    $endDate          = Helpers::sanitize($_POST['end_date'] ?? '');
-    $targeting        = Helpers::sanitize($_POST['targeting'] ?? 'open');
-    $targetProvider   = $targeting === 'specific' ? Helpers::sanitize($_POST['target_provider'] ?? '') : null;
-    $contactType      = Helpers::sanitize($_POST['contact_person_type'] ?? 'self');
-    $contactName      = $contactType === 'other' ? Helpers::sanitize($_POST['contact_name'] ?? '') : null;
-    $contactRole      = $contactType === 'other' ? Helpers::sanitize($_POST['contact_role'] ?? '') : null;
-    $contactEmail     = $contactType === 'other' ? strtolower(Helpers::sanitize($_POST['contact_email'] ?? '')) : null;
-    $contactPhone     = $contactType === 'other' ? preg_replace('/\D/', '', $_POST['contact_phone'] ?? '') : null;
+    $title           = Helpers::sanitize($_POST['title'] ?? '');
+    $type            = Helpers::sanitize($_POST['type'] ?? '');
+    $description     = Helpers::sanitize($_POST['description'] ?? '');
+    $startDate       = Helpers::sanitize($_POST['start_date'] ?? '');
+    $endDate         = Helpers::sanitize($_POST['end_date'] ?? '');
+    $targeting       = Helpers::sanitize($_POST['targeting'] ?? 'open');
+    $targetProvider  = $targeting === 'specific' ? Helpers::sanitize($_POST['target_provider'] ?? '') : null;
+    $contactType     = Helpers::sanitize($_POST['contact_person_type'] ?? 'self');
+    $contactName     = $contactType === 'other' ? Helpers::sanitize($_POST['contact_name'] ?? '') : null;
+    $contactRole     = $contactType === 'other' ? Helpers::sanitize($_POST['contact_role'] ?? '') : null;
+    $contactEmail    = $contactType === 'other' ? strtolower(Helpers::sanitize($_POST['contact_email'] ?? '')) : null;
+    $contactPhone    = $contactType === 'other' ? preg_replace('/\D/', '', $_POST['contact_phone'] ?? '') : null;
 
-    if (empty($title)) $errors[] = 'Nome da oportunidade é obrigatório.';
-    if (!in_array($type, ['software', 'service'])) $errors[] = 'Tipo inválido.';
-    if (empty($description)) $errors[] = 'Descrição é obrigatória.';
-    if (!Helpers::validateDate($startDate)) $errors[] = 'Data inicial inválida.';
+    if (empty($title))                              $errors[] = 'Nome é obrigatório.';
+    if (!in_array($type, ['software', 'service']))  $errors[] = 'Tipo inválido.';
+    if (empty($description))                        $errors[] = 'Descrição é obrigatória.';
+    if (!Helpers::validateDate($startDate))         $errors[] = 'Data inicial inválida.';
     if (!Helpers::validateDate($endDate) || $endDate < $startDate) $errors[] = 'Data final inválida.';
 
     if (!empty($errors)) {
@@ -483,11 +433,11 @@ $router->post('/client/opportunities/{id}/edit', function (string $id) {
          (int)$id, Auth::id()]
     );
 
-    Helpers::flash('success', 'Oportunidade atualizada com sucesso!');
-    Helpers::redirect('/client/opportunities');
+    Helpers::flash('success', 'Oportunidade atualizada!');
+    Helpers::redirect('/cliente/oportunidades');
 });
 
-$router->post('/client/opportunities/{id}/close', function (string $id) {
+$router->post('/cliente/oportunidades/{id}/encerrar', function (string $id) {
     Auth::requireType(Auth::TYPE_CLIENT);
     CSRF::check();
     Database::query(
@@ -495,35 +445,30 @@ $router->post('/client/opportunities/{id}/close', function (string $id) {
         [(int)$id, Auth::id()]
     );
     Helpers::flash('success', 'Oportunidade encerrada.');
-    Helpers::redirect('/client/opportunities');
+    Helpers::redirect('/cliente/oportunidades');
 });
 
 // -------------------------------------------------------
-// ROTAS DO FORNECEDOR
+// ROTAS DO FORNECEDOR/PARCEIRO
 // -------------------------------------------------------
-$router->get('/provider/dashboard', function () {
+$router->get('/parceiro/painel', function () {
     Auth::requireType(Auth::TYPE_PROVIDER);
     $user = Auth::user();
 
-    // Oportunidades disponíveis: ativas, dentro do prazo, não direcionadas a outro
     $total = Database::query(
         "SELECT COUNT(*) FROM opportunities
          WHERE status = 'active' AND end_date >= CURDATE()
-         AND (target_provider IS NULL OR target_provider = '')",
-        []
+         AND (target_provider IS NULL OR target_provider = '')"
     )->fetchColumn();
 
     $viewed = Database::query(
-        "SELECT COUNT(*) FROM opportunity_leads WHERE provider_id = ?",
-        [Auth::id()]
+        "SELECT COUNT(*) FROM opportunity_leads WHERE provider_id = ?", [Auth::id()]
     )->fetchColumn();
 
-    $stats = ['total' => $total, 'viewed' => $viewed, 'new' => $total - $viewed];
+    $stats = ['total' => $total, 'viewed' => $viewed, 'new' => max(0, $total - $viewed)];
 
-    // 5 mais recentes disponíveis
     $viewedIds = Database::query(
-        "SELECT opportunity_id FROM opportunity_leads WHERE provider_id = ?",
-        [Auth::id()]
+        "SELECT opportunity_id FROM opportunity_leads WHERE provider_id = ?", [Auth::id()]
     )->fetchAll(PDO::FETCH_COLUMN);
 
     $opportunities = Database::query(
@@ -532,11 +477,9 @@ $router->get('/provider/dashboard', function () {
          JOIN users u ON u.id = o.client_id
          WHERE o.status = 'active' AND o.end_date >= CURDATE()
          AND (o.target_provider IS NULL OR o.target_provider = '')
-         ORDER BY o.created_at DESC LIMIT 5",
-        []
+         ORDER BY o.created_at DESC LIMIT 5"
     )->fetchAll();
 
-    // Marcar como novo
     foreach ($opportunities as &$opp) {
         $opp['is_new'] = !in_array($opp['id'], $viewedIds);
     }
@@ -544,7 +487,7 @@ $router->get('/provider/dashboard', function () {
     include dirname(__DIR__) . '/templates/provider/dashboard.php';
 });
 
-$router->get('/provider/opportunities', function () {
+$router->get('/parceiro/oportunidades', function () {
     Auth::requireType(Auth::TYPE_PROVIDER);
     $type = Helpers::sanitize($_GET['type'] ?? '');
     $q    = Helpers::sanitize($_GET['q'] ?? '');
@@ -557,10 +500,7 @@ $router->get('/provider/opportunities', function () {
                AND (o.target_provider IS NULL OR o.target_provider = '')";
     $params = [Auth::id()];
 
-    if ($type && in_array($type, ['software', 'service'])) {
-        $sql .= " AND o.type = ?";
-        $params[] = $type;
-    }
+    if ($type && in_array($type, ['software', 'service'])) { $sql .= " AND o.type = ?"; $params[] = $type; }
     if ($q) {
         $sql .= " AND (o.title LIKE ? OR o.description LIKE ?)";
         $params[] = '%' . $q . '%';
@@ -569,11 +509,10 @@ $router->get('/provider/opportunities', function () {
     $sql .= " ORDER BY o.created_at DESC";
 
     $opportunities = Database::query($sql, $params)->fetchAll();
-
     include dirname(__DIR__) . '/templates/provider/opportunities/index.php';
 });
 
-$router->get('/provider/opportunities/{id}', function (string $id) {
+$router->get('/parceiro/oportunidades/{id}', function (string $id) {
     Auth::requireType(Auth::TYPE_PROVIDER);
 
     $opportunity = Database::query(
@@ -592,7 +531,6 @@ $router->get('/provider/opportunities/{id}', function (string $id) {
         return;
     }
 
-    // Registrar lead (INSERT IGNORE para não duplicar)
     Database::query(
         "INSERT IGNORE INTO opportunity_leads (opportunity_id, provider_id) VALUES (?, ?)",
         [(int)$id, Auth::id()]
@@ -601,7 +539,7 @@ $router->get('/provider/opportunities/{id}', function (string $id) {
     include dirname(__DIR__) . '/templates/provider/opportunities/view.php';
 });
 
-$router->get('/provider/history', function () {
+$router->get('/parceiro/historico', function () {
     Auth::requireType(Auth::TYPE_PROVIDER);
     $history = Database::query(
         "SELECT ol.*, o.title, o.type, o.status, o.end_date, u.company_name
@@ -619,7 +557,7 @@ $router->get('/provider/history', function () {
 // -------------------------------------------------------
 // ROTAS DO ADMINISTRADOR
 // -------------------------------------------------------
-$router->get('/admin/dashboard', function () {
+$router->get('/admin/painel', function () {
     Auth::requireType(Auth::TYPE_ADMIN);
 
     $stats = [
@@ -629,13 +567,10 @@ $router->get('/admin/dashboard', function () {
         'total_leads'   => Database::query("SELECT COUNT(*) FROM opportunity_leads")->fetchColumn(),
     ];
 
-    // Usuários pendentes de aprovação com verificação de CNPJ duplicado
     $pendingUsers = Database::query(
         "SELECT u.*,
             (SELECT COUNT(*) FROM users u2 WHERE u2.cnpj = u.cnpj AND u2.id != u.id AND u2.status = 'active') > 0 AS cnpj_duplicate
-         FROM users u
-         WHERE u.status = 'pending_admin'
-         ORDER BY u.created_at ASC"
+         FROM users u WHERE u.status = 'pending_admin' ORDER BY u.created_at ASC"
     )->fetchAll();
 
     $recentOpps = Database::query(
@@ -647,7 +582,7 @@ $router->get('/admin/dashboard', function () {
     include dirname(__DIR__) . '/templates/admin/dashboard.php';
 });
 
-$router->get('/admin/users', function () {
+$router->get('/admin/usuarios', function () {
     Auth::requireType(Auth::TYPE_ADMIN);
 
     $status = Helpers::sanitize($_GET['status'] ?? '');
@@ -672,7 +607,7 @@ $router->get('/admin/users', function () {
     include dirname(__DIR__) . '/templates/admin/users/index.php';
 });
 
-$router->post('/admin/users/{id}/approve', function (string $id) {
+$router->post('/admin/usuarios/{id}/aprovar', function (string $id) {
     Auth::requireType(Auth::TYPE_ADMIN);
     CSRF::check();
 
@@ -686,28 +621,28 @@ $router->post('/admin/users/{id}/approve', function (string $id) {
         Helpers::flash('success', 'Usuário aprovado com sucesso!');
     }
 
-    Helpers::redirect('/admin/users');
+    Helpers::redirect('/admin/usuarios');
 });
 
-$router->post('/admin/users/{id}/reject', function (string $id) {
+$router->post('/admin/usuarios/{id}/rejeitar', function (string $id) {
     Auth::requireType(Auth::TYPE_ADMIN);
     CSRF::check();
     Database::query("DELETE FROM users WHERE id = ? AND type != 'admin'", [(int)$id]);
     Helpers::flash('success', 'Usuário removido.');
-    Helpers::redirect('/admin/users');
+    Helpers::redirect('/admin/usuarios');
 });
 
-$router->post('/admin/users/{id}/deactivate', function (string $id) {
+$router->post('/admin/usuarios/{id}/desativar', function (string $id) {
     Auth::requireType(Auth::TYPE_ADMIN);
     CSRF::check();
     Database::query(
         "UPDATE users SET status = 'pending_admin' WHERE id = ? AND type != 'admin'", [(int)$id]
     );
     Helpers::flash('success', 'Usuário desativado.');
-    Helpers::redirect('/admin/users');
+    Helpers::redirect('/admin/usuarios');
 });
 
-$router->get('/admin/opportunities', function () {
+$router->get('/admin/oportunidades', function () {
     Auth::requireType(Auth::TYPE_ADMIN);
 
     $status = Helpers::sanitize($_GET['status'] ?? '');
@@ -720,24 +655,20 @@ $router->get('/admin/opportunities', function () {
     $params = [];
 
     if ($status && in_array($status, ['active', 'closed'])) { $sql .= " AND o.status = ?"; $params[] = $status; }
-    if ($type   && in_array($type,   ['software', 'service'])){ $sql .= " AND o.type = ?";   $params[] = $type; }
+    if ($type   && in_array($type,   ['software', 'service'])) { $sql .= " AND o.type = ?"; $params[] = $type; }
     $sql .= " ORDER BY o.created_at DESC";
 
     $opportunities = Database::query($sql, $params)->fetchAll();
     include dirname(__DIR__) . '/templates/admin/opportunities/index.php';
 });
 
-$router->get('/admin/reports', function () {
+$router->get('/admin/relatorios', function () {
     Auth::requireType(Auth::TYPE_ADMIN);
 
     $totals = [
         'connections'      => Database::query("SELECT COUNT(*) FROM opportunity_leads")->fetchColumn(),
-        'active_providers' => Database::query(
-            "SELECT COUNT(DISTINCT provider_id) FROM opportunity_leads"
-        )->fetchColumn(),
-        'opps_with_leads'  => Database::query(
-            "SELECT COUNT(DISTINCT opportunity_id) FROM opportunity_leads"
-        )->fetchColumn(),
+        'active_providers' => Database::query("SELECT COUNT(DISTINCT provider_id) FROM opportunity_leads")->fetchColumn(),
+        'opps_with_leads'  => Database::query("SELECT COUNT(DISTINCT opportunity_id) FROM opportunity_leads")->fetchColumn(),
     ];
 
     $leads = Database::query(
@@ -757,15 +688,15 @@ $router->get('/admin/reports', function () {
 });
 
 // -------------------------------------------------------
-// PERFIL (todos os usuários logados)
+// PERFIL
 // -------------------------------------------------------
-$router->get('/profile', function () {
+$router->get('/perfil', function () {
     Auth::require();
     $user = Auth::user();
     include dirname(__DIR__) . '/templates/profile.php';
 });
 
-$router->post('/profile', function () {
+$router->post('/perfil', function () {
     Auth::require();
     CSRF::check();
 
@@ -780,10 +711,9 @@ $router->post('/profile', function () {
 
     if (empty($name))    $errors[] = 'Nome é obrigatório.';
     if (empty($company)) $errors[] = 'Empresa é obrigatória.';
-
     if (!empty($newPwd)) {
-        if (strlen($newPwd) < 8)    $errors[] = 'Nova senha deve ter no mínimo 8 caracteres.';
-        if ($newPwd !== $newPwdC)   $errors[] = 'As senhas não coincidem.';
+        if (strlen($newPwd) < 8) $errors[] = 'Nova senha deve ter no mínimo 8 caracteres.';
+        if ($newPwd !== $newPwdC) $errors[] = 'As senhas não coincidem.';
     }
 
     if (!empty($errors)) {
@@ -803,12 +733,10 @@ $router->post('/profile', function () {
     $params[] = Auth::id();
 
     Database::query($sql, $params);
-
-    // Atualizar nome na sessão
     $_SESSION['user_name'] = $name;
 
     Helpers::flash('success', 'Perfil atualizado com sucesso!');
-    Helpers::redirect('/profile');
+    Helpers::redirect('/perfil');
 });
 
 // -------------------------------------------------------

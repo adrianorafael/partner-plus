@@ -24,7 +24,7 @@
             </div>
             <?php endif; ?>
 
-            <form method="post" action="<?= APP_URL ?>/register" class="space-y-4" id="register-form">
+            <form method="post" action="<?= APP_URL ?>/cadastrar" class="space-y-4" id="register-form">
                 <?= CSRF::field() ?>
 
                 <!-- Tipo de conta -->
@@ -146,7 +146,7 @@
 
             <p class="text-center text-sm text-slate-500 mt-6">
                 Já tem uma conta?
-                <a href="<?= APP_URL ?>/login" class="text-plus-cyan font-medium hover:underline">Entrar</a>
+                <a href="<?= APP_URL ?>/entrar" class="text-plus-cyan font-medium hover:underline">Entrar</a>
             </p>
         </div>
     </div>

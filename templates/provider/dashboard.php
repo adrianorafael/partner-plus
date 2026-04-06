@@ -31,7 +31,7 @@
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm">
         <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
             <h3 class="font-bold font-title">Oportunidades Disponíveis</h3>
-            <a href="<?= APP_URL ?>/provider/opportunities"
+            <a href="<?= APP_URL ?>/parceiro/oportunidades"
                class="text-sm text-plus-cyan font-medium hover:underline">Ver todas →</a>
         </div>
 
@@ -64,7 +64,7 @@
                         <p class="text-xs text-slate-500 line-clamp-2"><?= Helpers::e(substr($opp['description'], 0, 120)) ?>...</p>
                         <p class="text-xs text-slate-400 mt-1">Empresa: <?= Helpers::e($opp['company_name']) ?> · Válido até <?= Helpers::formatDate($opp['end_date']) ?></p>
                     </div>
-                    <a href="<?= APP_URL ?>/provider/opportunities/<?= $opp['id'] ?>"
+                    <a href="<?= APP_URL ?>/parceiro/oportunidades/<?= $opp['id'] ?>"
                        class="flex-shrink-0 px-4 py-2 rounded-xl text-xs font-bold text-void bg-plus-cyan hover:opacity-90 transition-opacity whitespace-nowrap">
                         Ver Detalhes
                     </a>

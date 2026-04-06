@@ -1,0 +1,110 @@
+# Documento de Requisitos de Software - Plataforma Partner Plus
+
+Este documento detalha os requisitos técnicos e funcionais para a construção da plataforma **Partner Plus**, um hub B2B que conecta empresas com necessidades de software e serviços a fornecedores qualificados. O sistema deve ser desenvolvido em **PHP 8.3.30** e **MySQL**, gerenciado via **phpMyAdmin**.
+
+---
+
+## 1. Visão Geral do Sistema
+
+A plataforma Plus permite que representantes de empresas (Clientes) cadastrem intenções de compra de software/serviços. Fornecedores cadastrados podem visualizar essas oportunidades e iniciar contato direto. O sistema prioriza segurança, usabilidade e segue a identidade visual da marca Plus.
+
+### Tecnologias Alvo
+- **Linguagem:** PHP 8.3.30 (Sem frameworks pesados, foco em código limpo e seguro).
+- **Banco de Dados:** MySQL (Gerenciamento via phpMyAdmin).
+- **Frontend:** HTML5, CSS3 (Tailwind CSS recomendado para agilidade e fidelidade ao design), JavaScript Vanilla.
+- **Segurança:** Proteção contra SQL Injection, XSS, CSRF e manipulação de sessões.
+
+---
+
+## 2. Identidade Visual (Versão Fundo Claro)
+
+Baseado em [Plus Brand Identity](https://plus-br.com/plus-brand-identity.html), a interface deve utilizar:
+
+| Elemento | Especificação |
+| :--- | :--- |
+| **Cores Primárias** | Plus Cyan (`#00E5C8`), Void (`#06090F`) para textos. |
+| **Cores de Apoio** | Surge Lime (`#B8FF45`) para acentos de energia/sucesso. |
+| **Tipografia Títulos** | Roboto (Weight 700-900). |
+| **Tipografia Corpo** | DM Sans (Weight 300-600). |
+| **Estilo** | Minimalista, tech, B2B, alta legibilidade, bordas levemente arredondadas. |
+
+---
+
+## 3. Ordem Cronológica de Desenvolvimento e Requisitos
+
+### Fase 1: Wizard de Instalação (Deploy)
+O sistema deve iniciar por um script de instalação (`/install`) que:
+1. **Configuração de DB:** Solicita Host, Nome do Banco, Usuário e Senha.
+2. **Validação:** Testa a conexão antes de prosseguir.
+3. **Schema:** Executa o script SQL para criar todas as tabelas necessárias.
+4. **Admin Inicial:** Solicita e-mail e senha para criar a conta do único Administrador.
+5. **Finalização:** Cria um arquivo `config.php` com as credenciais e bloqueia o acesso ao diretório `/install`.
+
+### Fase 2: Autenticação e Gestão de Contas
+- **Cadastro em 2 Etapas:**
+    1. Preenchimento de dados (CNPJ válido, Nome, Cargo, E-mail Corporativo, Telefone, Senha).
+    2. Validação de E-mail via link único enviado por e-mail.
+    3. Aprovação Pendente: O usuário só acessa o painel após o Admin aprovar o cadastro.
+- **Login:** Autenticação segura com proteção contra força bruta.
+- **Recuperação de Senha:** Solicitação de reset via e-mail com token temporário e formulário de nova senha.
+- **Perfil:** Edição de dados cadastrais pelo próprio usuário.
+
+### Fase 3: Painel do Cliente (Empresa Solicitante)
+- **Dashboard:** Resumo de oportunidades ativas.
+- **Cadastro de Oportunidade:**
+    - Tipo: Serviço ou Software.
+    - Validade: Data inicial e final.
+    - Direcionamento: Aberto (ampla concorrência) ou Específico (informar nome do fornecedor).
+    - Descrição: Nome do software/serviço e campo de detalhes.
+    - Responsável: Opção de ser o próprio usuário ou indicar um terceiro (Nome, Cargo, E-mail, Telefone).
+- **Gestão:** Listar, editar ou encerrar oportunidades cadastradas.
+
+### Fase 4: Painel do Fornecedor
+- **Dashboard:** Visualização de novas oportunidades compatíveis.
+- **Oportunidades:** Ver detalhes da necessidade e dados de contato do cliente (E-mail/Telefone) para iniciar o contato.
+- **Histórico:** Lista de oportunidades visualizadas/interessadas.
+
+### Fase 5: Painel do Administrador
+- **Gestão de Usuários:** Lista de todos os cadastros com status (E-mail Validado, Aprovado/Pendente).
+- **Alerta de CNPJ:** Destaque visual para novos cadastros cujo CNPJ já existe no sistema (indicação de múltiplos representantes da mesma empresa).
+- **Gestão de Oportunidades:** Visualizar todas as oportunidades cadastradas no sistema.
+- **Relatórios de Conexão:** Ver quais fornecedores acessaram quais oportunidades.
+
+---
+
+## 4. Modelagem de Dados (MySQL)
+
+### Tabelas Principais:
+1. **`users`**: id, cnpj, company_name, representative_name, role, email, phone, password_hash, type (admin, client, provider), status (pending_email, pending_admin, active), created_at.
+2. **`email_verifications`**: user_id, token, expires_at.
+3. **`password_resets`**: user_id, token, expires_at.
+4. **`opportunities`**: id, client_id, type (software, service), title, description, start_date, end_date, target_provider (null or name), contact_person_type (self, other), contact_name, contact_role, contact_email, contact_phone, status (active, closed), created_at.
+5. **`opportunity_leads`**: id, opportunity_id, provider_id, accessed_at.
+
+---
+
+## 5. Requisitos de Segurança e Regras de Negócio
+
+### Segurança Cibernética
+- **Sanitização:** Uso obrigatório de `Prepared Statements` (PDO) para todas as queries SQL.
+- **Validação de Input:** Filtrar todos os dados de formulários contra XSS.
+- **Sessões:** `session_regenerate_id()` após login; cookies `HttpOnly` e `Secure`.
+- **E-mails Corporativos:** Bloquear domínios gratuitos (gmail, outlook, hotmail, yahoo, etc.) no cadastro.
+- **CNPJ:** Validação de algoritmo de CNPJ e verificação de duplicidade com alerta ao Admin.
+- **Proteção de Arquivos:** Impedir listagem de diretórios e proteger arquivos sensíveis via `.htaccess`.
+
+### Regras de Negócio Específicas
+- **Privacidade:** Clientes nunca veem oportunidades de outros clientes.
+- **Acesso Fornecedor:** Só vê oportunidades dentro do prazo de validade e que não sejam direcionadas a outro fornecedor específico.
+- **Admin Único:** O sistema suporta apenas um admin, definido no wizard.
+
+---
+
+## 6. Instruções para IA Claude Code
+
+Ao construir o sistema:
+1. Siga a estrutura de pastas: `/public` (assets/index), `/src` (lógica PHP), `/templates` (views), `/install` (wizard).
+2. Utilize **PDO** para conexões com banco de dados.
+3. Implemente uma classe ou funções de `Auth` para gerenciar permissões de forma centralizada.
+4. Garanta que o CSS reflita o "Fundo Claro" da Plus, usando `#00E5C8` como cor de destaque em botões e links.
+5. O código deve ser modular e comentado para facilitar manutenção.
