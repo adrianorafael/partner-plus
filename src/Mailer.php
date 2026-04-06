@@ -56,7 +56,7 @@ class Mailer
      */
     public static function sendApprovalNotification(string $to, string $name): bool
     {
-        $link = APP_URL . '/entrar';
+        $link = APP_URL . '/entrar'  /* rota de login */;
         $subject = 'Cadastro aprovado - Partner Plus';
 
         $body = self::layout($subject, "
@@ -101,7 +101,7 @@ class Mailer
      */
     public static function sendNewRegistrationAlert(string $adminEmail, string $userName, string $company): bool
     {
-        $link = APP_URL . '/admin/usuarios';
+        $link = APP_URL . '/gerenciar-usuarios';
         $subject = 'Novo cadastro pendente - Partner Plus';
 
         $body = self::layout($subject, "

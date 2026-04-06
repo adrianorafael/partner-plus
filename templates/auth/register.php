@@ -24,7 +24,7 @@
             </div>
             <?php endif; ?>
 
-            <form method="post" action="<?= APP_URL ?>/cadastrar" class="space-y-4" id="register-form">
+            <form method="post" action="<?= APP_URL ?>/criar-conta" class="space-y-4" id="register-form">
                 <?= CSRF::field() ?>
 
                 <!-- Tipo de conta -->

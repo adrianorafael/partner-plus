@@ -29,7 +29,7 @@
                 <p class="text-slate-500 text-sm mb-6">
                     O link de verificação é inválido ou expirou. Links são válidos por 24 horas.
                 </p>
-                <a href="<?= APP_URL ?>/cadastrar"
+                <a href="<?= APP_URL ?>/criar-conta"
                    class="inline-block px-8 py-3 rounded-xl font-bold text-sm text-void bg-plus-cyan hover:opacity-90 transition-opacity">
                     Fazer novo cadastro
                 </a>

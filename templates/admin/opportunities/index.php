@@ -13,7 +13,7 @@
 
     <!-- Filtros -->
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-4">
-        <form method="get" action="<?= APP_URL ?>/admin/oportunidades" class="flex flex-wrap gap-3 items-end">
+        <form method="get" action="<?= APP_URL ?>/gerenciar-oportunidades" class="flex flex-wrap gap-3 items-end">
             <div>
                 <label class="block text-xs text-slate-500 mb-1">Status</label>
                 <select name="status" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-plus-cyan">

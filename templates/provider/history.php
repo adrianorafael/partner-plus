@@ -14,7 +14,7 @@
     <?php if (empty($history)): ?>
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-16 text-center">
         <p class="text-slate-400 text-sm">Você ainda não visualizou nenhuma oportunidade.</p>
-        <a href="<?= APP_URL ?>/parceiro/oportunidades" class="inline-block mt-4 text-sm text-plus-cyan font-medium hover:underline">
+        <a href="<?= APP_URL ?>/oportunidades-disponiveis" class="inline-block mt-4 text-sm text-plus-cyan font-medium hover:underline">
             Ver oportunidades disponíveis →
         </a>
     </div>
@@ -52,7 +52,7 @@
                         </td>
                         <td class="px-4 py-4">
                             <?php if ($item['status'] === 'active' && strtotime($item['end_date']) >= time()): ?>
-                            <a href="<?= APP_URL ?>/parceiro/oportunidades/<?= $item['opportunity_id'] ?>"
+                            <a href="<?= APP_URL ?>/ver-oportunidade/<?= $item['opportunity_id'] ?>"
                                class="text-xs text-plus-cyan hover:underline font-medium">Ver detalhes</a>
                             <?php endif; ?>
                         </td>

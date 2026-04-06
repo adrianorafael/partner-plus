@@ -6,21 +6,21 @@ $links = [];
 
 if ($effectiveType === Auth::TYPE_ADMIN) {
     $links = [
-        'Usuários'      => APP_URL . '/admin/usuarios',
-        'Oportunidades' => APP_URL . '/admin/oportunidades',
-        'Relatórios'    => APP_URL . '/admin/relatorios',
+        'Usuários'      => APP_URL . '/gerenciar-usuarios',
+        'Oportunidades' => APP_URL . '/gerenciar-oportunidades',
+        'Relatórios'    => APP_URL . '/relatorios-conexao',
     ];
 } elseif ($effectiveType === Auth::TYPE_CLIENT) {
     $links = [
-        'Painel'             => APP_URL . '/cliente/painel',
-        'Oportunidades'      => APP_URL . '/cliente/oportunidades',
-        'Nova Oportunidade'  => APP_URL . '/cliente/oportunidades/criar',
+        'Painel'             => APP_URL . '/painel-cliente',
+        'Oportunidades'      => APP_URL . '/minhas-oportunidades',
+        'Nova Oportunidade'  => APP_URL . '/nova-oportunidade',
     ];
 } elseif ($effectiveType === Auth::TYPE_PROVIDER) {
     $links = [
-        'Painel'        => APP_URL . '/parceiro/painel',
-        'Oportunidades' => APP_URL . '/parceiro/oportunidades',
-        'Histórico'     => APP_URL . '/parceiro/historico',
+        'Painel'        => APP_URL . '/painel-parceiro',
+        'Oportunidades' => APP_URL . '/oportunidades-disponiveis',
+        'Histórico'     => APP_URL . '/historico-parceiro',
     ];
 }
 
@@ -40,7 +40,7 @@ $typeLabels  = [
             d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
     </svg>
     Você está visualizando como <strong><?= $typeLabels[$viewAs] ?? $viewAs ?></strong>
-    <a href="<?= APP_URL ?>/admin/visualizar/reset"
+    <a href="<?= APP_URL ?>/encerrar-simulacao"
        class="inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-xs font-bold transition-opacity hover:opacity-80"
        style="background:#06090F;color:#B8FF45;">
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -89,14 +89,14 @@ $typeLabels  = [
                     </button>
                     <div id="view-as-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-50">
                         <p class="px-4 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wide">Simular como</p>
-                        <form method="post" action="<?= APP_URL ?>/admin/visualizar">
+                        <form method="post" action="<?= APP_URL ?>/simular-visao">
                             <?= CSRF::field() ?>
                             <input type="hidden" name="type" value="client">
                             <button type="submit" class="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-cyan-50 hover:text-void flex items-center gap-2">
                                 <span class="w-2 h-2 rounded-full bg-blue-400 inline-block"></span>Cliente
                             </button>
                         </form>
-                        <form method="post" action="<?= APP_URL ?>/admin/visualizar">
+                        <form method="post" action="<?= APP_URL ?>/simular-visao">
                             <?= CSRF::field() ?>
                             <input type="hidden" name="type" value="provider">
                             <button type="submit" class="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-cyan-50 hover:text-void flex items-center gap-2">
@@ -127,13 +127,13 @@ $typeLabels  = [
                             <p class="text-xs text-slate-400">Simulando como</p>
                             <p class="text-sm font-bold text-void"><?= $typeLabels[$viewAs] ?></p>
                         </div>
-                        <a href="<?= APP_URL ?>/admin/visualizar/reset"
+                        <a href="<?= APP_URL ?>/encerrar-simulacao"
                            class="block px-4 py-2.5 text-sm font-semibold hover:bg-slate-50 text-void">
                             ← Voltar ao Painel Admin
                         </a>
                         <hr class="my-1 border-slate-100">
                         <?php endif; ?>
-                        <a href="<?= APP_URL ?>/perfil" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Meu Perfil</a>
+                        <a href="<?= APP_URL ?>/meu-perfil" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Meu Perfil</a>
                         <hr class="my-1 border-slate-100">
                         <a href="<?= APP_URL ?>/sair" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">Sair</a>
                     </div>
@@ -157,24 +157,22 @@ $typeLabels  = [
             <?php if ($realType === Auth::TYPE_ADMIN && !$viewAs): ?>
             <hr class="border-slate-700 my-2">
             <p class="px-3 py-1 text-xs text-slate-500 font-semibold uppercase">Simular visão</p>
-            <form method="post" action="<?= APP_URL ?>/admin/visualizar" class="px-3">
-                <?= CSRF::field() ?>
-                <input type="hidden" name="type" value="client">
+            <form method="post" action="<?= APP_URL ?>/simular-visao" class="px-3">
+                <?= CSRF::field() ?><input type="hidden" name="type" value="client">
                 <button type="submit" class="block w-full text-left py-2 text-sm text-slate-300 hover:text-white">→ Como Cliente</button>
             </form>
-            <form method="post" action="<?= APP_URL ?>/admin/visualizar" class="px-3">
-                <?= CSRF::field() ?>
-                <input type="hidden" name="type" value="provider">
+            <form method="post" action="<?= APP_URL ?>/simular-visao" class="px-3">
+                <?= CSRF::field() ?><input type="hidden" name="type" value="provider">
                 <button type="submit" class="block w-full text-left py-2 text-sm text-slate-300 hover:text-white">→ Como Fornecedor</button>
             </form>
             <?php endif; ?>
             <?php if ($viewAs): ?>
             <hr class="border-slate-700 my-2">
-            <a href="<?= APP_URL ?>/admin/visualizar/reset" class="block px-3 py-2 text-sm font-bold" style="color:#B8FF45;">← Voltar ao Admin</a>
+            <a href="<?= APP_URL ?>/encerrar-simulacao" class="block px-3 py-2 text-sm font-bold" style="color:#B8FF45;">← Voltar ao Admin</a>
             <?php endif; ?>
             <hr class="border-slate-700 my-2">
-            <a href="<?= APP_URL ?>/perfil" class="block px-3 py-2 text-sm text-slate-300 hover:text-white">Meu Perfil</a>
-            <a href="<?= APP_URL ?>/sair"   class="block px-3 py-2 text-sm text-red-400 hover:text-red-300">Sair</a>
+            <a href="<?= APP_URL ?>/meu-perfil" class="block px-3 py-2 text-sm text-slate-300 hover:text-white">Meu Perfil</a>
+            <a href="<?= APP_URL ?>/sair"       class="block px-3 py-2 text-sm text-red-400 hover:text-red-300">Sair</a>
         </div>
     </div>
 </nav>

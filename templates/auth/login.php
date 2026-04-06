@@ -74,7 +74,7 @@
 
             <p class="text-center text-sm text-slate-500 mt-6">
                 Não tem uma conta?
-                <a href="<?= APP_URL ?>/cadastrar" class="text-plus-cyan font-medium hover:underline">Cadastre-se</a>
+                <a href="<?= APP_URL ?>/criar-conta" class="text-plus-cyan font-medium hover:underline">Cadastre-se</a>
             </p>
         </div>
 

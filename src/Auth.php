@@ -134,7 +134,7 @@ class Auth
     public static function require(): void
     {
         if (!self::check()) {
-            header('Location: ' . APP_URL . '/entrar');
+            header('Location: ' . APP_URL . '/entrar'); // rota pública de login
             exit;
         }
     }
@@ -151,7 +151,7 @@ class Auth
             return;
         }
         if (!in_array(self::type(), $types, true)) {
-            header('Location: ' . APP_URL . '/painel');
+            header('Location: ' . APP_URL . '/painel'); // redirect sem tipo definido
             exit;
         }
     }
@@ -197,9 +197,9 @@ class Auth
     public static function redirectToDashboard(): void
     {
         $map = [
-            self::TYPE_ADMIN    => '/admin/painel',
-            self::TYPE_CLIENT   => '/cliente/painel',
-            self::TYPE_PROVIDER => '/parceiro/painel',
+            self::TYPE_ADMIN    => '/painel-admin',
+            self::TYPE_CLIENT   => '/painel-cliente',
+            self::TYPE_PROVIDER => '/painel-parceiro',
         ];
         $path = $map[self::effectiveType()] ?? '/entrar';
         header('Location: ' . APP_URL . $path);

@@ -13,7 +13,7 @@
 
     <!-- Filtros -->
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-4">
-        <form method="get" action="<?= APP_URL ?>/parceiro/oportunidades" class="flex flex-wrap gap-3 items-end">
+        <form method="get" action="<?= APP_URL ?>/oportunidades-disponiveis" class="flex flex-wrap gap-3 items-end">
             <div>
                 <label class="block text-xs text-slate-500 mb-1">Tipo</label>
                 <select name="type" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-plus-cyan">
@@ -33,7 +33,7 @@
                 Filtrar
             </button>
             <?php if (!empty($_GET['type']) || !empty($_GET['q'])): ?>
-            <a href="<?= APP_URL ?>/parceiro/oportunidades" class="text-xs text-slate-400 hover:text-slate-600 self-end mb-2">Limpar</a>
+            <a href="<?= APP_URL ?>/oportunidades-disponiveis" class="text-xs text-slate-400 hover:text-slate-600 self-end mb-2">Limpar</a>
             <?php endif; ?>
         </form>
     </div>
@@ -65,7 +65,7 @@
                         <span>📅 Válido: <?= Helpers::formatDate($opp['start_date']) ?> — <?= Helpers::formatDate($opp['end_date']) ?></span>
                     </div>
                 </div>
-                <a href="<?= APP_URL ?>/parceiro/oportunidades/<?= $opp['id'] ?>"
+                <a href="<?= APP_URL ?>/ver-oportunidade/<?= $opp['id'] ?>"
                    class="flex-shrink-0 px-5 py-2.5 rounded-xl text-sm font-bold text-void bg-plus-cyan hover:opacity-90 transition-opacity">
                     Ver Detalhes
                 </a>

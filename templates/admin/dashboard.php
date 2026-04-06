@@ -63,14 +63,14 @@
                         <p class="text-xs text-slate-400"><?= Helpers::e($u['email']) ?></p>
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0">
-                        <form method="post" action="<?= APP_URL ?>/admin/usuarios/<?= $u['id'] ?>/aprovar">
+                        <form method="post" action="<?= APP_URL ?>/aprovar-usuario/<?= $u['id'] ?>">
                             <?= CSRF::field() ?>
                             <button type="submit"
                                 class="px-3 py-1.5 rounded-lg text-xs font-bold text-void bg-plus-cyan hover:opacity-90 transition-opacity">
                                 Aprovar
                             </button>
                         </form>
-                        <form method="post" action="<?= APP_URL ?>/admin/usuarios/<?= $u['id'] ?>/rejeitar"
+                        <form method="post" action="<?= APP_URL ?>/rejeitar-usuario/<?= $u['id'] ?>"
                               onsubmit="return confirm('Rejeitar e remover este cadastro?')">
                             <?= CSRF::field() ?>
                             <button type="submit"
@@ -83,7 +83,7 @@
                 <?php endforeach; ?>
             </div>
             <div class="px-6 py-3 border-t border-slate-100">
-                <a href="<?= APP_URL ?>/admin/usuarios" class="text-sm text-plus-cyan font-medium hover:underline">
+                <a href="<?= APP_URL ?>/gerenciar-usuarios" class="text-sm text-plus-cyan font-medium hover:underline">
                     Ver todos os usuários →
                 </a>
             </div>
@@ -94,7 +94,7 @@
         <div class="bg-white rounded-2xl border border-slate-100 shadow-sm">
             <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                 <h3 class="font-bold font-title">Oportunidades Recentes</h3>
-                <a href="<?= APP_URL ?>/admin/oportunidades" class="text-sm text-plus-cyan font-medium hover:underline">Ver todas →</a>
+                <a href="<?= APP_URL ?>/gerenciar-oportunidades" class="text-sm text-plus-cyan font-medium hover:underline">Ver todas →</a>
             </div>
 
             <?php if (empty($recentOpps)): ?>
