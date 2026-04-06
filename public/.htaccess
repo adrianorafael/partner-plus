@@ -1,11 +1,10 @@
 Options -Indexes
 
 RewriteEngine On
-RewriteBase /
 
 # Não redirecionar arquivos/pastas que existem fisicamente
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 
-# Tudo vai para index.php
+# Tudo vai para index.php (sem RewriteBase para funcionar em subdiretório)
 RewriteRule ^(.*)$ index.php [QSA,L]

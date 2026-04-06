@@ -30,23 +30,30 @@ if ($step === 1 && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($dbName) || empty($dbUser)) {
         $errors[] = 'Nome do banco e usuário são obrigatórios.';
     } else {
-        // Testar conexão
-        $dsn = "mysql:host={$dbHost};dbname={$dbName};charset=utf8mb4";
-        try {
-            $pdo = new PDO($dsn, $dbUser, $dbPass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+        // Verificar permissão de escrita em /config antes de prosseguir
+        $configDir = dirname(__DIR__) . '/config';
+        if (!is_writable($configDir)) {
+            $errors[] = 'A pasta /config não tem permissão de escrita. '
+                      . 'Defina chmod 755 na pasta config/ no servidor antes de continuar.';
+        } else {
+            // Testar conexão
+            $dsn = "mysql:host={$dbHost};dbname={$dbName};charset=utf8mb4";
+            try {
+                $pdo = new PDO($dsn, $dbUser, $dbPass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
 
-            // Guardar dados na sessão e avançar
-            $_SESSION['install'] = [
-                'db_host' => $dbHost,
-                'db_name' => $dbName,
-                'db_user' => $dbUser,
-                'db_pass' => $dbPass,
-            ];
+                // Guardar dados na sessão e avançar
+                $_SESSION['install'] = [
+                    'db_host' => $dbHost,
+                    'db_name' => $dbName,
+                    'db_user' => $dbUser,
+                    'db_pass' => $dbPass,
+                ];
 
-            header('Location: ?step=2');
-            exit;
-        } catch (PDOException $e) {
-            $errors[] = 'Falha na conexão: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES);
+                header('Location: ?step=2');
+                exit;
+            } catch (PDOException $e) {
+                $errors[] = 'Falha na conexão: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES);
+            }
         }
     }
 }
@@ -178,7 +185,8 @@ if ($step === 4 && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $configContent .= "define('APP_NAME', 'Partner Plus');\n";
     $configContent .= "define('APP_URL',  " . var_export($appUrl, true) . ");\n";
     $configContent .= "define('APP_ENV',  'production');\n\n";
-    $configContent .= "define('MAIL_FROM',      'noreply@' . parse_url(" . var_export($appUrl, true) . ", PHP_URL_HOST));\n";
+    $mailHost       = parse_url($appUrl, PHP_URL_HOST) ?: 'partnerplus.local';
+    $configContent .= "define('MAIL_FROM',      " . var_export('noreply@' . $mailHost, true) . ");\n";
     $configContent .= "define('MAIL_FROM_NAME', 'Partner Plus');\n\n";
     $configContent .= "define('APP_SECRET', " . var_export($secret, true) . ");\n";
 
