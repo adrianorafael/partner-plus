@@ -1,0 +1,13 @@
+# Bloquear listagem de diretórios
+Options -Indexes
+
+# Proteger arquivos sensíveis
+<FilesMatch "(config\.php|\.env|\.gitignore|schema\.sql)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Redirecionar tudo para public/
+RewriteEngine On
+RewriteRule ^$ public/ [L]
+RewriteRule ^((?!public/).*)$ public/$1 [L,QSA]

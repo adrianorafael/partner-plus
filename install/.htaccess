@@ -1,0 +1,10 @@
+# Este arquivo bloqueia o acesso ao wizard após a instalação.
+# O install/index.php cria o arquivo .installed que ativa a regra abaixo.
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{DOCUMENT_ROOT}/install/.installed -f
+    RewriteRule ^.*$ - [F,L]
+</IfModule>
+
+Options -Indexes
