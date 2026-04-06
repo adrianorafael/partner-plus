@@ -32,7 +32,7 @@
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm">
         <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
             <h3 class="font-bold font-title">Oportunidades Recentes</h3>
-            <a href="<?= APP_URL ?>/cliente/oportunidades/criar"
+            <a href="<?= APP_URL ?>/nova-oportunidade"
                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-void bg-plus-cyan hover:opacity-90 transition-opacity">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -50,7 +50,7 @@
                 </svg>
             </div>
             <p class="text-slate-400 text-sm">Nenhuma oportunidade cadastrada ainda.</p>
-            <a href="<?= APP_URL ?>/cliente/oportunidades/criar"
+            <a href="<?= APP_URL ?>/nova-oportunidade"
                class="inline-block mt-4 text-sm text-plus-cyan font-medium hover:underline">
                 Cadastrar primeira oportunidade →
             </a>
@@ -81,7 +81,7 @@
                         ? '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Ativa</span>'
                         : '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">Encerrada</span>'
                     ?>
-                    <a href="<?= APP_URL ?>/cliente/oportunidades/<?= $opp['id'] ?>/editar"
+                    <a href="<?= APP_URL ?>/editar-oportunidade/<?= $opp['id'] ?>"
                        class="text-slate-400 hover:text-plus-cyan transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -93,7 +93,7 @@
             <?php endforeach; ?>
         </div>
         <div class="px-6 py-3 border-t border-slate-100">
-            <a href="<?= APP_URL ?>/cliente/oportunidades"
+            <a href="<?= APP_URL ?>/minhas-oportunidades"
                class="text-sm text-plus-cyan font-medium hover:underline">
                 Ver todas as oportunidades →
             </a>

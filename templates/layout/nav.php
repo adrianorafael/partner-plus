@@ -56,7 +56,7 @@ $typeLabels  = [
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
 
-            <a href="<?= APP_URL ?>/painel" class="flex items-center gap-1 font-black text-xl tracking-tight" style="font-family:Roboto,sans-serif;">
+            <a href="<?= APP_URL ?>/painel" class="flex items-center gap-1 font-black text-xl tracking-tight bg-transparent" style="font-family:Roboto,sans-serif;">
                 <span class="text-plus-cyan">Partner</span>
                 <span class="text-surge-lime">Plus</span>
                 <?php if ($viewAs): ?>
@@ -70,7 +70,7 @@ $typeLabels  = [
                 <?php foreach ($links as $label => $href): ?>
                     <a href="<?= Helpers::e($href) ?>"
                        class="px-3 py-2 rounded-lg text-sm font-medium transition-colors
-                              <?= str_starts_with($currentPath, parse_url($href, PHP_URL_PATH)) ? 'text-void bg-plus-cyan' : 'text-slate-300 hover:text-white hover:bg-white/10' ?>">
+                              <?= $currentPath === parse_url($href, PHP_URL_PATH) ? 'text-void bg-plus-cyan' : 'text-slate-300 hover:text-white hover:bg-white/10' ?>">
                         <?= Helpers::e($label) ?>
                     </a>
                 <?php endforeach; ?>
