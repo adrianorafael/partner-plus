@@ -8,16 +8,16 @@ Options -Indexes
 
 RewriteEngine On
 
-# Bloquear acesso direto à pasta /public/
+# Bloquear acesso direto à pasta /public/ (requisições externas apenas)
 RewriteRule ^public(/.*)?$ - [F,L]
 
 # Servir assets estáticos diretamente de public/assets/ (sem expor o caminho)
 RewriteRule ^assets/(.+)$ public/assets/$1 [L]
 
-# Redirecionar raiz para a página de entrada
-RewriteRule ^$ entrar [R=302,L]
-
 # Tudo o mais vai para public/index.php (rewrite interno)
+# Usa [END] para evitar que Apache/LiteSpeed itere as regras novamente
+# com o caminho já reescrito (evita ^public/.* disparar 403 em 2ª passagem).
+# public/index.php detecta ausência de config.php e redireciona para /install/.
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ public/index.php [QSA,L]
+RewriteRule ^(.*)$ public/index.php [QSA,END]
