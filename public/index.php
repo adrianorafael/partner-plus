@@ -252,6 +252,11 @@ $router->get('/minhas-oportunidades', function () {
 
 $router->get('/nova-oportunidade', function () {
     Auth::requireType(Auth::TYPE_CLIENT);
+    $providers = Database::query(
+        "SELECT u.id, u.company_name, pp.id AS prod_id, pp.name AS prod_name, pp.type AS prod_type
+         FROM users u LEFT JOIN provider_products pp ON pp.provider_id = u.id AND pp.active = 1
+         WHERE u.type = 'provider' AND u.status = 'active' ORDER BY u.company_name, pp.name"
+    )->fetchAll();
     include dirname(__DIR__) . '/templates/client/opportunities/form.php';
 });
 
@@ -267,6 +272,11 @@ $router->post('/nova-oportunidade', function () {
 
 $router->get('/editar-oportunidade/{id}', function (string $id) {
     Auth::requireType(Auth::TYPE_CLIENT);
+    $providers = Database::query(
+        "SELECT u.id, u.company_name, pp.id AS prod_id, pp.name AS prod_name, pp.type AS prod_type
+         FROM users u LEFT JOIN provider_products pp ON pp.provider_id = u.id AND pp.active = 1
+         WHERE u.type = 'provider' AND u.status = 'active' ORDER BY u.company_name, pp.name"
+    )->fetchAll();
     $opportunity = Database::query(
         "SELECT * FROM opportunities WHERE id = ? AND client_id = ? LIMIT 1", [(int)$id, Auth::id()]
     )->fetch();
@@ -302,14 +312,16 @@ $router->post('/encerrar-oportunidade/{id}', function (string $id) {
 $router->get('/painel-parceiro', function () {
     Auth::requireType(Auth::TYPE_PROVIDER);
     $user      = Auth::user();
-    $total     = Database::query("SELECT COUNT(*) FROM opportunities WHERE status = 'active' AND end_date >= CURDATE() AND (target_provider IS NULL OR target_provider = '')")->fetchColumn();
-    $viewed    = Database::query("SELECT COUNT(*) FROM opportunity_leads WHERE provider_id = ?", [Auth::id()])->fetchColumn();
+    $pid       = Auth::id();
+    $total     = Database::query("SELECT COUNT(*) FROM opportunities WHERE status = 'active' AND end_date >= CURDATE() AND (target_provider_id IS NULL OR target_provider_id = ?)", [$pid])->fetchColumn();
+    $viewed    = Database::query("SELECT COUNT(*) FROM opportunity_leads WHERE provider_id = ?", [$pid])->fetchColumn();
     $stats     = ['total' => $total, 'viewed' => $viewed, 'new' => max(0, $total - $viewed)];
-    $viewedIds = Database::query("SELECT opportunity_id FROM opportunity_leads WHERE provider_id = ?", [Auth::id()])->fetchAll(PDO::FETCH_COLUMN);
+    $viewedIds = Database::query("SELECT opportunity_id FROM opportunity_leads WHERE provider_id = ?", [$pid])->fetchAll(PDO::FETCH_COLUMN);
     $opportunities = Database::query(
         "SELECT o.*, u.company_name FROM opportunities o JOIN users u ON u.id = o.client_id
-         WHERE o.status = 'active' AND o.end_date >= CURDATE() AND (o.target_provider IS NULL OR o.target_provider = '')
-         ORDER BY o.created_at DESC LIMIT 5"
+         WHERE o.status = 'active' AND o.end_date >= CURDATE() AND (o.target_provider_id IS NULL OR o.target_provider_id = ?)
+         ORDER BY o.created_at DESC LIMIT 5",
+        [$pid]
     )->fetchAll();
     foreach ($opportunities as &$opp) $opp['is_new'] = !in_array($opp['id'], $viewedIds);
     include dirname(__DIR__) . '/templates/provider/dashboard.php';
@@ -319,12 +331,13 @@ $router->get('/oportunidades-disponiveis', function () {
     Auth::requireType(Auth::TYPE_PROVIDER);
     $type = Helpers::sanitize($_GET['type'] ?? '');
     $q    = Helpers::sanitize($_GET['q'] ?? '');
+    $pid  = Auth::id();
     $sql  = "SELECT o.*, u.company_name,
                 (SELECT COUNT(*) FROM opportunity_leads WHERE opportunity_id = o.id AND provider_id = ?) AS viewed
              FROM opportunities o JOIN users u ON u.id = o.client_id
              WHERE o.status = 'active' AND o.end_date >= CURDATE()
-             AND (o.target_provider IS NULL OR o.target_provider = '')";
-    $params = [Auth::id()];
+             AND (o.target_provider_id IS NULL OR o.target_provider_id = ?)";
+    $params = [$pid, $pid];
     if ($type && in_array($type, ['software', 'service'])) { $sql .= " AND o.type = ?"; $params[] = $type; }
     if ($q) {
         $sql .= " AND (o.title LIKE ? OR o.description LIKE ?)";
@@ -337,12 +350,16 @@ $router->get('/oportunidades-disponiveis', function () {
 
 $router->get('/ver-oportunidade/{id}', function (string $id) {
     Auth::requireType(Auth::TYPE_PROVIDER);
+    $pid         = Auth::id();
     $opportunity = Database::query(
-        "SELECT o.*, u.company_name, u.representative_name, u.email, u.phone, u.role
-         FROM opportunities o JOIN users u ON u.id = o.client_id
+        "SELECT o.*, u.company_name, u.representative_name, u.email, u.phone, u.role,
+                p.name AS product_name, p.type AS product_type
+         FROM opportunities o
+         JOIN users u ON u.id = o.client_id
+         LEFT JOIN provider_products p ON p.id = o.target_product_id
          WHERE o.id = ? AND o.status = 'active' AND o.end_date >= CURDATE()
-         AND (o.target_provider IS NULL OR o.target_provider = '') LIMIT 1",
-        [(int)$id]
+         AND (o.target_provider_id IS NULL OR o.target_provider_id = ?) LIMIT 1",
+        [(int)$id, $pid]
     )->fetch();
     if (!$opportunity) { http_response_code(404); include dirname(__DIR__) . '/templates/errors/404.php'; return; }
     Database::query("INSERT IGNORE INTO opportunity_leads (opportunity_id, provider_id) VALUES (?, ?)", [(int)$id, Auth::id()]);
@@ -358,6 +375,63 @@ $router->get('/historico-parceiro', function () {
         [Auth::id()]
     )->fetchAll();
     include dirname(__DIR__) . '/templates/provider/history.php';
+});
+
+$router->get('/meus-produtos', function () {
+    Auth::requireType(Auth::TYPE_PROVIDER);
+    $products = Database::query(
+        "SELECT * FROM provider_products WHERE provider_id = ? ORDER BY name ASC",
+        [Auth::id()]
+    )->fetchAll();
+    include dirname(__DIR__) . '/templates/provider/products/index.php';
+});
+
+$router->get('/novo-produto', function () {
+    Auth::requireType(Auth::TYPE_PROVIDER);
+    include dirname(__DIR__) . '/templates/provider/products/form.php';
+});
+
+$router->post('/novo-produto', function () {
+    Auth::requireType(Auth::TYPE_PROVIDER);
+    CSRF::check();
+    $errors = _validateProductForm();
+    if (!empty($errors)) { include dirname(__DIR__) . '/templates/provider/products/form.php'; return; }
+    Database::query(
+        "INSERT INTO provider_products (provider_id, name, type, description) VALUES (?, ?, ?, ?)",
+        [Auth::id(), Helpers::sanitize($_POST['name'] ?? ''), Helpers::sanitize($_POST['type'] ?? ''), Helpers::sanitize($_POST['description'] ?? '')]
+    );
+    Helpers::flash('success', 'Produto/serviço cadastrado com sucesso!');
+    Helpers::redirect('/meus-produtos');
+});
+
+$router->get('/editar-produto/{id}', function (string $id) {
+    Auth::requireType(Auth::TYPE_PROVIDER);
+    $product = Database::query("SELECT * FROM provider_products WHERE id = ? AND provider_id = ? LIMIT 1", [(int)$id, Auth::id()])->fetch();
+    if (!$product) { Helpers::redirect('/meus-produtos'); return; }
+    include dirname(__DIR__) . '/templates/provider/products/form.php';
+});
+
+$router->post('/editar-produto/{id}', function (string $id) {
+    Auth::requireType(Auth::TYPE_PROVIDER);
+    CSRF::check();
+    $product = Database::query("SELECT * FROM provider_products WHERE id = ? AND provider_id = ? LIMIT 1", [(int)$id, Auth::id()])->fetch();
+    if (!$product) { Helpers::redirect('/meus-produtos'); return; }
+    $errors = _validateProductForm();
+    if (!empty($errors)) { include dirname(__DIR__) . '/templates/provider/products/form.php'; return; }
+    Database::query(
+        "UPDATE provider_products SET name=?, type=?, description=?, active=? WHERE id = ? AND provider_id = ?",
+        [Helpers::sanitize($_POST['name'] ?? ''), Helpers::sanitize($_POST['type'] ?? ''), Helpers::sanitize($_POST['description'] ?? ''), isset($_POST['active']) ? 1 : 0, (int)$id, Auth::id()]
+    );
+    Helpers::flash('success', 'Produto/serviço atualizado!');
+    Helpers::redirect('/meus-produtos');
+});
+
+$router->post('/remover-produto/{id}', function (string $id) {
+    Auth::requireType(Auth::TYPE_PROVIDER);
+    CSRF::check();
+    Database::query("DELETE FROM provider_products WHERE id = ? AND provider_id = ?", [(int)$id, Auth::id()]);
+    Helpers::flash('success', 'Produto/serviço removido.');
+    Helpers::redirect('/meus-produtos');
 });
 
 // -------------------------------------------------------
@@ -517,8 +591,12 @@ function _validateOpportunityForm(): array
     if (!Helpers::validateDate($startDate))        $errors[] = 'Data inicial inválida.';
     if (!Helpers::validateDate($endDate))          $errors[] = 'Data final inválida.';
     if ($startDate && $endDate && $endDate < $startDate) $errors[] = 'A data final deve ser posterior à inicial.';
-    if ($targeting === 'specific' && empty(Helpers::sanitize($_POST['target_provider'] ?? '')))
-        $errors[] = 'Informe o nome do fornecedor específico.';
+    if ($targeting === 'specific') {
+        if (empty(Helpers::sanitize($_POST['target_provider_id'] ?? '')))
+            $errors[] = 'Selecione o fornecedor parceiro.';
+        if (empty(Helpers::sanitize($_POST['contract_type'] ?? '')))
+            $errors[] = 'Informe o tipo de contratação (nova ou incremento).';
+    }
     if ($contactType === 'other') {
         if (empty(Helpers::sanitize($_POST['contact_name'] ?? ''))) $errors[] = 'Nome do contato é obrigatório.';
         $ce = strtolower(Helpers::sanitize($_POST['contact_email'] ?? ''));
@@ -527,15 +605,32 @@ function _validateOpportunityForm(): array
     return $errors;
 }
 
+function _opportunitySpecificFields(): array
+{
+    $targeting      = Helpers::sanitize($_POST['targeting'] ?? 'open');
+    $isSpecific     = $targeting === 'specific';
+    $providerId     = $isSpecific ? (int)($_POST['target_provider_id'] ?? 0) : null;
+    $productId      = $isSpecific && !empty($_POST['target_product_id']) ? (int)$_POST['target_product_id'] : null;
+    $contractType   = $isSpecific ? Helpers::sanitize($_POST['contract_type'] ?? '') : null;
+    // Resolve provider name for the legacy text column (human readable)
+    $providerName   = null;
+    if ($isSpecific && $providerId) {
+        $row = Database::query("SELECT company_name FROM users WHERE id = ? LIMIT 1", [$providerId])->fetch();
+        $providerName = $row['company_name'] ?? null;
+    }
+    return [$isSpecific, $providerId, $productId, $contractType, $providerName];
+}
+
 function _insertOpportunity(int $clientId): void
 {
-    $targeting    = Helpers::sanitize($_POST['targeting'] ?? 'open');
-    $contactType  = Helpers::sanitize($_POST['contact_person_type'] ?? 'self');
+    [$isSpecific, $providerId, $productId, $contractType, $providerName] = _opportunitySpecificFields();
+    $contactType = Helpers::sanitize($_POST['contact_person_type'] ?? 'self');
     Database::query(
         "INSERT INTO opportunities
-            (client_id, type, title, description, start_date, end_date, target_provider,
+            (client_id, type, title, description, start_date, end_date,
+             target_provider, target_provider_id, target_product_id, contract_type,
              contact_person_type, contact_name, contact_role, contact_email, contact_phone, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')",
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')",
         [
             $clientId,
             Helpers::sanitize($_POST['type'] ?? ''),
@@ -543,7 +638,10 @@ function _insertOpportunity(int $clientId): void
             Helpers::sanitize($_POST['description'] ?? ''),
             Helpers::sanitize($_POST['start_date'] ?? ''),
             Helpers::sanitize($_POST['end_date'] ?? ''),
-            $targeting === 'specific' ? Helpers::sanitize($_POST['target_provider'] ?? '') : null,
+            $providerName,
+            $providerId,
+            $productId,
+            $contractType,
             $contactType,
             $contactType === 'other' ? Helpers::sanitize($_POST['contact_name'] ?? '') : null,
             $contactType === 'other' ? Helpers::sanitize($_POST['contact_role'] ?? '') : null,
@@ -555,19 +653,23 @@ function _insertOpportunity(int $clientId): void
 
 function _updateOpportunity(int $id, int $clientId): void
 {
-    $targeting   = Helpers::sanitize($_POST['targeting'] ?? 'open');
+    [$isSpecific, $providerId, $productId, $contractType, $providerName] = _opportunitySpecificFields();
     $contactType = Helpers::sanitize($_POST['contact_person_type'] ?? 'self');
     Database::query(
         "UPDATE opportunities SET type=?, title=?, description=?, start_date=?, end_date=?,
-         target_provider=?, contact_person_type=?, contact_name=?, contact_role=?,
-         contact_email=?, contact_phone=? WHERE id = ? AND client_id = ?",
+         target_provider=?, target_provider_id=?, target_product_id=?, contract_type=?,
+         contact_person_type=?, contact_name=?, contact_role=?, contact_email=?, contact_phone=?
+         WHERE id = ? AND client_id = ?",
         [
             Helpers::sanitize($_POST['type'] ?? ''),
             Helpers::sanitize($_POST['title'] ?? ''),
             Helpers::sanitize($_POST['description'] ?? ''),
             Helpers::sanitize($_POST['start_date'] ?? ''),
             Helpers::sanitize($_POST['end_date'] ?? ''),
-            $targeting === 'specific' ? Helpers::sanitize($_POST['target_provider'] ?? '') : null,
+            $providerName,
+            $providerId,
+            $productId,
+            $contractType,
             $contactType,
             $contactType === 'other' ? Helpers::sanitize($_POST['contact_name'] ?? '') : null,
             $contactType === 'other' ? Helpers::sanitize($_POST['contact_role'] ?? '') : null,
@@ -577,4 +679,14 @@ function _updateOpportunity(int $id, int $clientId): void
             $clientId,
         ]
     );
+}
+
+function _validateProductForm(): array
+{
+    $errors = [];
+    $name = Helpers::sanitize($_POST['name'] ?? '');
+    $type = Helpers::sanitize($_POST['type'] ?? '');
+    if (empty($name))                                  $errors[] = 'Nome do produto/serviço é obrigatório.';
+    if (!in_array($type, ['software', 'service']))     $errors[] = 'Selecione o tipo (Software ou Serviço).';
+    return $errors;
 }

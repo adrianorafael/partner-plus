@@ -104,13 +104,6 @@ input[type="radio"].sr-only:checked ~ div {
     box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 
-/* -------------------------------------------------------
- * Navbar
- * ------------------------------------------------------- */
-nav a.active-nav {
-    background-color: var(--plus-cyan);
-    color: var(--void);
-}
 
 /* -------------------------------------------------------
  * Tabelas

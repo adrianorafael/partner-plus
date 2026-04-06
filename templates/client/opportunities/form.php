@@ -28,7 +28,7 @@ $opp = $opportunity ?? [];
     <?php endif; ?>
 
     <form method="post"
-          action="<?= $isEdit ? APP_URL . '/editar-oportunidade/' .  : APP_URL . '/nova-oportunidade' ?>"
+          action="<?= $isEdit ? APP_URL . '/editar-oportunidade/' . ($opp['id'] ?? '') : APP_URL . '/nova-oportunidade' ?>"
           class="space-y-6">
         <?= CSRF::field() ?>
 
@@ -95,15 +95,32 @@ $opp = $opportunity ?? [];
         </div>
 
         <!-- Direcionamento -->
+        <?php
+        // Agrupa providers e seus produtos em estrutura JS-friendly
+        $providersMap = [];
+        foreach ($providers ?? [] as $row) {
+            $pid = $row['id'];
+            if (!isset($providersMap[$pid])) {
+                $providersMap[$pid] = ['id' => $pid, 'name' => $row['company_name'], 'products' => []];
+            }
+            if ($row['prod_id']) {
+                $providersMap[$pid]['products'][] = [
+                    'id'   => $row['prod_id'],
+                    'name' => $row['prod_name'],
+                    'type' => $row['prod_type'],
+                ];
+            }
+        }
+        $selectedProviderId = (int)($opp['target_provider_id'] ?? $_POST['target_provider_id'] ?? 0);
+        $selectedProductId  = (int)($opp['target_product_id']  ?? $_POST['target_product_id']  ?? 0);
+        $selectedContract   = $opp['contract_type'] ?? $_POST['contract_type'] ?? '';
+        $isSpecific         = $selectedProviderId > 0 || ($_POST['targeting'] ?? '') === 'specific';
+        ?>
         <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
             <h3 class="font-bold font-title mb-1">Direcionamento</h3>
-            <p class="text-slate-500 text-sm mb-4">Defina se a oportunidade é aberta a todos os fornecedores ou direcionada a um fornecedor específico.</p>
+            <p class="text-slate-500 text-sm mb-4">Defina se a oportunidade é aberta a todos os fornecedores ou direcionada a um parceiro específico.</p>
 
             <div class="space-y-3" id="targeting-section">
-                <?php
-                $currentTarget = $opp['target_provider'] ?? $_POST['target_provider'] ?? '';
-                $isSpecific = !empty($currentTarget);
-                ?>
                 <label class="flex items-start gap-3 cursor-pointer p-3 rounded-xl border-2 border-slate-200 hover:border-slate-300 transition-colors
                                <?= !$isSpecific ? 'border-plus-cyan bg-cyan-50' : '' ?>" id="label-open">
                     <input type="radio" name="targeting" value="open" class="mt-0.5 accent-[#00E5C8]"
@@ -118,16 +135,80 @@ $opp = $opportunity ?? [];
                     <input type="radio" name="targeting" value="specific" class="mt-0.5 accent-[#00E5C8]"
                         <?= $isSpecific ? 'checked' : '' ?>>
                     <div class="w-full">
-                        <p class="font-semibold text-sm text-void">Específico — Fornecedor determinado</p>
-                        <p class="text-xs text-slate-400 mt-0.5">Somente o fornecedor indicado verá esta oportunidade.</p>
-                        <div id="provider-name-field" class="mt-3 <?= $isSpecific ? '' : 'hidden' ?>">
-                            <input type="text" name="target_provider" id="target_provider"
-                                value="<?= Helpers::e($currentTarget) ?>"
-                                placeholder="Nome do fornecedor"
-                                class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-plus-cyan">
-                        </div>
+                        <p class="font-semibold text-sm text-void">Específico — Parceiro determinado</p>
+                        <p class="text-xs text-slate-400 mt-0.5">Somente o parceiro indicado verá esta oportunidade.</p>
                     </div>
                 </label>
+            </div>
+
+            <!-- Campos do direcionamento específico -->
+            <div id="specific-fields" class="mt-4 space-y-4 <?= $isSpecific ? '' : 'hidden' ?>">
+
+                <?php if (empty($providersMap)): ?>
+                <p class="text-sm text-orange-600 bg-orange-50 rounded-xl px-4 py-3">
+                    Nenhum fornecedor parceiro ativo cadastrado na plataforma ainda.
+                </p>
+                <?php else: ?>
+
+                <!-- Selecionar fornecedor -->
+                <div>
+                    <label for="target_provider_id" class="block text-sm font-medium text-slate-700 mb-1">
+                        Fornecedor Parceiro <span class="text-red-500">*</span>
+                    </label>
+                    <select id="target_provider_id" name="target_provider_id"
+                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-plus-cyan">
+                        <option value="">Selecione um parceiro...</option>
+                        <?php foreach ($providersMap as $pv): ?>
+                        <option value="<?= $pv['id'] ?>" <?= $selectedProviderId === $pv['id'] ? 'selected' : '' ?>>
+                            <?= Helpers::e($pv['name']) ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <!-- Selecionar produto/serviço -->
+                <div id="product-field" class="<?= $selectedProviderId ? '' : 'hidden' ?>">
+                    <label for="target_product_id" class="block text-sm font-medium text-slate-700 mb-1">
+                        Produto / Serviço <span class="text-xs text-slate-400">(opcional)</span>
+                    </label>
+                    <select id="target_product_id" name="target_product_id"
+                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-plus-cyan">
+                        <option value="">Selecione um produto ou serviço...</option>
+                        <?php
+                        $initialProducts = $providersMap[$selectedProviderId]['products'] ?? [];
+                        foreach ($initialProducts as $prod): ?>
+                        <option value="<?= $prod['id'] ?>" <?= $selectedProductId === (int)$prod['id'] ? 'selected' : '' ?>>
+                            <?= Helpers::e($prod['name']) ?> (<?= $prod['type'] === 'software' ? 'Software' : 'Serviço' ?>)
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <!-- Tipo de contratação -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                        Tipo de Contratação <span class="text-red-500">*</span>
+                    </label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <?php
+                        $contracts = ['new_contract' => ['Nova Contratação', 'Primeira aquisição deste produto/serviço.'],
+                                      'expansion'    => ['Incremento de Contrato', 'Expansão ou renovação de contrato existente.']];
+                        foreach ($contracts as $val => [$label, $hint]):
+                            $checked = $selectedContract === $val;
+                        ?>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="contract_type" value="<?= $val ?>" class="sr-only peer"
+                                <?= $checked ? 'checked' : '' ?>>
+                            <div class="border-2 border-slate-200 rounded-xl p-3 transition-all peer-checked:border-plus-cyan peer-checked:bg-cyan-50 h-full">
+                                <p class="font-semibold text-sm text-void"><?= $label ?></p>
+                                <p class="text-xs text-slate-400 mt-0.5"><?= $hint ?></p>
+                            </div>
+                        </label>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+
+                <?php endif; ?>
             </div>
         </div>
 
@@ -204,25 +285,55 @@ $opp = $opportunity ?? [];
 </main>
 
 <script>
-// Toggle campo fornecedor específico
+// Mapa de produtos por fornecedor (PHP → JS)
+const providersMap = <?= json_encode(array_values($providersMap ?? []), JSON_UNESCAPED_UNICODE) ?>;
+
+// Toggle seção de direcionamento específico
 document.querySelectorAll('[name="targeting"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-        const field = document.getElementById('provider-name-field');
-        field.classList.toggle('hidden', this.value !== 'specific');
-        if (this.value !== 'specific') {
-            document.getElementById('target_provider').value = '';
+    radio.addEventListener('change', function () {
+        const specific = this.value === 'specific';
+        document.getElementById('specific-fields').classList.toggle('hidden', !specific);
+        document.getElementById('label-open').classList.toggle('border-plus-cyan', !specific);
+        document.getElementById('label-open').classList.toggle('bg-cyan-50', !specific);
+        document.getElementById('label-specific').classList.toggle('border-plus-cyan', specific);
+        document.getElementById('label-specific').classList.toggle('bg-cyan-50', specific);
+        if (!specific) {
+            const sel = document.getElementById('target_provider_id');
+            if (sel) sel.value = '';
+            document.getElementById('product-field')?.classList.add('hidden');
+            const pSel = document.getElementById('target_product_id');
+            if (pSel) { pSel.innerHTML = '<option value="">Selecione um produto ou serviço...</option>'; }
         }
-        // Atualizar estilos dos labels
-        document.getElementById('label-open').classList.toggle('border-plus-cyan', this.value === 'open');
-        document.getElementById('label-open').classList.toggle('bg-cyan-50', this.value === 'open');
-        document.getElementById('label-specific').classList.toggle('border-plus-cyan', this.value === 'specific');
-        document.getElementById('label-specific').classList.toggle('bg-cyan-50', this.value === 'specific');
     });
 });
 
+// Ao mudar o fornecedor, carregar produtos correspondentes
+const providerSelect = document.getElementById('target_provider_id');
+if (providerSelect) {
+    providerSelect.addEventListener('change', function () {
+        const pid     = parseInt(this.value);
+        const sel     = document.getElementById('target_product_id');
+        const wrapper = document.getElementById('product-field');
+        sel.innerHTML = '<option value="">Selecione um produto ou serviço...</option>';
+        if (!pid) { wrapper.classList.add('hidden'); return; }
+        const provider = providersMap.find(p => p.id === pid);
+        if (provider && provider.products.length > 0) {
+            provider.products.forEach(prod => {
+                const opt  = document.createElement('option');
+                opt.value  = prod.id;
+                opt.text   = prod.name + ' (' + (prod.type === 'software' ? 'Software' : 'Serviço') + ')';
+                sel.appendChild(opt);
+            });
+            wrapper.classList.remove('hidden');
+        } else {
+            wrapper.classList.add('hidden');
+        }
+    });
+}
+
 // Toggle campos de contato
 document.querySelectorAll('[name="contact_person_type"]').forEach(radio => {
-    radio.addEventListener('change', function() {
+    radio.addEventListener('change', function () {
         document.getElementById('other-contact-fields').classList.toggle('hidden', this.value !== 'other');
     });
 });

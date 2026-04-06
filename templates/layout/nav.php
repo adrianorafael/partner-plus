@@ -20,6 +20,7 @@ if ($effectiveType === Auth::TYPE_ADMIN) {
     $links = [
         'Painel'        => APP_URL . '/painel-parceiro',
         'Oportunidades' => APP_URL . '/oportunidades-disponiveis',
+        'Meus Produtos' => APP_URL . '/meus-produtos',
         'Histórico'     => APP_URL . '/historico-parceiro',
     ];
 }

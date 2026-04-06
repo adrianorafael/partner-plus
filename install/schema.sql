@@ -63,7 +63,10 @@ CREATE TABLE IF NOT EXISTS `opportunities` (
     `description`          TEXT         NOT NULL,
     `start_date`           DATE         NOT NULL,
     `end_date`             DATE         NOT NULL,
-    `target_provider`      VARCHAR(255) NULL DEFAULT NULL COMMENT 'Nome do fornecedor específico, se direcionado',
+    `target_provider`      VARCHAR(255) NULL DEFAULT NULL COMMENT 'Nome do fornecedor específico (texto livre, legado)',
+    `target_provider_id`   INT UNSIGNED NULL DEFAULT NULL COMMENT 'FK para usuário fornecedor selecionado',
+    `target_product_id`    INT UNSIGNED NULL DEFAULT NULL COMMENT 'FK para produto/serviço do fornecedor',
+    `contract_type`        ENUM('new_contract','expansion') NULL DEFAULT NULL COMMENT 'Tipo de contratação',
     `contact_person_type`  ENUM('self','other') NOT NULL DEFAULT 'self',
     `contact_name`         VARCHAR(255) NULL,
     `contact_role`         VARCHAR(100) NULL,
@@ -71,10 +74,29 @@ CREATE TABLE IF NOT EXISTS `opportunities` (
     `contact_phone`        VARCHAR(20)  NULL,
     `status`               ENUM('active','closed') NOT NULL DEFAULT 'active',
     `created_at`           DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (`client_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`client_id`)          REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`target_provider_id`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+    FOREIGN KEY (`target_product_id`)  REFERENCES `provider_products`(`id`) ON DELETE SET NULL,
     INDEX `idx_client`    (`client_id`),
     INDEX `idx_status`    (`status`),
     INDEX `idx_end_date`  (`end_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -------------------------------------------------------
+-- Tabela: provider_products
+-- Produtos e serviços cadastrados pelos fornecedores
+-- -------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `provider_products` (
+    `id`           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `provider_id`  INT UNSIGNED NOT NULL,
+    `name`         VARCHAR(255) NOT NULL,
+    `type`         ENUM('software','service') NOT NULL,
+    `description`  TEXT NULL,
+    `active`       TINYINT(1) NOT NULL DEFAULT 1,
+    `created_at`   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`provider_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    INDEX `idx_provider`        (`provider_id`),
+    INDEX `idx_provider_active` (`provider_id`, `active`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -------------------------------------------------------
