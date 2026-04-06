@@ -252,11 +252,7 @@ $router->get('/minhas-oportunidades', function () {
 
 $router->get('/nova-oportunidade', function () {
     Auth::requireType(Auth::TYPE_CLIENT);
-    $providers = Database::query(
-        "SELECT u.id, u.company_name, pp.id AS prod_id, pp.name AS prod_name, pp.type AS prod_type
-         FROM users u LEFT JOIN provider_products pp ON pp.provider_id = u.id AND pp.active = 1
-         WHERE u.type = 'provider' AND u.status = 'active' ORDER BY u.company_name, pp.name"
-    )->fetchAll();
+    $providers = _loadProviders();
     include dirname(__DIR__) . '/templates/client/opportunities/form.php';
 });
 
@@ -264,7 +260,11 @@ $router->post('/nova-oportunidade', function () {
     Auth::requireType(Auth::TYPE_CLIENT);
     CSRF::check();
     $errors = _validateOpportunityForm();
-    if (!empty($errors)) { include dirname(__DIR__) . '/templates/client/opportunities/form.php'; return; }
+    if (!empty($errors)) {
+        $providers = _loadProviders();
+        include dirname(__DIR__) . '/templates/client/opportunities/form.php';
+        return;
+    }
     _insertOpportunity(Auth::id());
     Helpers::flash('success', 'Oportunidade publicada com sucesso!');
     Helpers::redirect('/minhas-oportunidades');
@@ -272,11 +272,7 @@ $router->post('/nova-oportunidade', function () {
 
 $router->get('/editar-oportunidade/{id}', function (string $id) {
     Auth::requireType(Auth::TYPE_CLIENT);
-    $providers = Database::query(
-        "SELECT u.id, u.company_name, pp.id AS prod_id, pp.name AS prod_name, pp.type AS prod_type
-         FROM users u LEFT JOIN provider_products pp ON pp.provider_id = u.id AND pp.active = 1
-         WHERE u.type = 'provider' AND u.status = 'active' ORDER BY u.company_name, pp.name"
-    )->fetchAll();
+    $providers = _loadProviders();
     $opportunity = Database::query(
         "SELECT * FROM opportunities WHERE id = ? AND client_id = ? LIMIT 1", [(int)$id, Auth::id()]
     )->fetch();
@@ -292,7 +288,11 @@ $router->post('/editar-oportunidade/{id}', function (string $id) {
     )->fetch();
     if (!$opportunity) { Helpers::redirect('/minhas-oportunidades'); return; }
     $errors = _validateOpportunityForm();
-    if (!empty($errors)) { include dirname(__DIR__) . '/templates/client/opportunities/form.php'; return; }
+    if (!empty($errors)) {
+        $providers = _loadProviders();
+        include dirname(__DIR__) . '/templates/client/opportunities/form.php';
+        return;
+    }
     _updateOpportunity((int)$id, Auth::id());
     Helpers::flash('success', 'Oportunidade atualizada!');
     Helpers::redirect('/minhas-oportunidades');
@@ -679,6 +679,15 @@ function _updateOpportunity(int $id, int $clientId): void
             $clientId,
         ]
     );
+}
+
+function _loadProviders(): array
+{
+    return Database::query(
+        "SELECT u.id, u.company_name, pp.id AS prod_id, pp.name AS prod_name, pp.type AS prod_type
+         FROM users u LEFT JOIN provider_products pp ON pp.provider_id = u.id AND pp.active = 1
+         WHERE u.type = 'provider' AND u.status = 'active' ORDER BY u.company_name, pp.name"
+    )->fetchAll();
 }
 
 function _validateProductForm(): array

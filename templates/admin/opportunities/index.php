@@ -61,7 +61,11 @@
                         <td class="px-6 py-4">
                             <p class="font-medium text-void"><?= Helpers::e($opp['title']) ?></p>
                             <?php if ($opp['target_provider']): ?>
-                            <p class="text-xs text-amber-600 mt-0.5">→ <?= Helpers::e($opp['target_provider']) ?></p>
+                            <p class="text-xs text-amber-600 mt-0.5">→ <?= Helpers::e($opp['target_provider']) ?>
+                                <?php if ($opp['contract_type']): ?>
+                                <span class="ml-1 text-slate-400">(<?= $opp['contract_type'] === 'new_contract' ? 'Nova contratação' : 'Incremento' ?>)</span>
+                                <?php endif; ?>
+                            </p>
                             <?php endif; ?>
                         </td>
                         <td class="px-4 py-4 text-slate-500 text-xs"><?= Helpers::e($opp['company_name']) ?></td>

@@ -37,6 +37,27 @@
             <p class="text-slate-700 text-sm leading-relaxed whitespace-pre-line"><?= Helpers::e($opp['description']) ?></p>
         </div>
 
+        <!-- Direcionamento específico (produto + tipo de contratação) -->
+        <?php if ($opp['contract_type']): ?>
+        <div class="mb-6 p-4 rounded-xl border-2 border-plus-cyan bg-cyan-50 space-y-2">
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Esta oportunidade foi direcionada especificamente para você</p>
+            <?php if ($opp['product_name']): ?>
+            <p class="text-sm text-void">
+                <span class="font-medium">Produto/Serviço de interesse:</span>
+                <?= Helpers::e($opp['product_name']) ?>
+                <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                    <?= $opp['product_type'] === 'software' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700' ?>">
+                    <?= $opp['product_type'] === 'software' ? 'Software' : 'Serviço' ?>
+                </span>
+            </p>
+            <?php endif; ?>
+            <p class="text-sm text-void">
+                <span class="font-medium">Tipo de contratação:</span>
+                <?= $opp['contract_type'] === 'new_contract' ? 'Nova Contratação' : 'Incremento de Contrato' ?>
+            </p>
+        </div>
+        <?php endif; ?>
+
         <!-- Validade -->
         <div class="grid grid-cols-2 gap-4 mb-6">
             <div class="bg-slate-50 rounded-xl p-4">
