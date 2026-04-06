@@ -6,13 +6,60 @@
  */
 declare(strict_types=1);
 
-// Bloquear acesso se já instalado
-if (file_exists(__DIR__ . '/.installed')) {
-    http_response_code(403);
-    die('<h1>403 - Acesso Negado</h1><p>O sistema já foi instalado. Remova o arquivo <code>/install/.installed</code> apenas se quiser reinstalar.</p>');
-}
-
 session_start();
+
+// Bloquear acesso se já instalado — exceto se for a tela de conclusão
+// da instalação atual (flag 'install_complete' na sessão).
+if (file_exists(__DIR__ . '/.installed')) {
+    $step = (int)($_GET['step'] ?? 0);
+    if ($step === 5 && !empty($_SESSION['install_complete'])) {
+        // Deixar passar: é o redirect legítimo do step 4
+    } else {
+        // Acesso direto após instalação: exibir tela informativa
+        ?>
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Sistema já instalado — Partner Plus</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+            <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@700;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+        </head>
+        <body class="min-h-screen flex items-center justify-center p-4" style="background:#f8fafc;font-family:'DM Sans',sans-serif;">
+            <div class="w-full max-w-md text-center">
+                <h1 class="text-2xl font-black mb-1" style="font-family:Roboto,sans-serif;color:#06090F;">
+                    Partner <span style="color:#00E5C8;">Plus</span>
+                </h1>
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 mt-6">
+                    <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style="background:#fef3c7;">
+                        <svg class="w-7 h-7" style="color:#d97706;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                        </svg>
+                    </div>
+                    <h2 class="text-lg font-bold mb-2" style="font-family:Roboto,sans-serif;">Sistema já instalado</h2>
+                    <p class="text-slate-500 text-sm mb-4">
+                        O Partner Plus já foi configurado em
+                        <strong><?= htmlspecialchars(file_get_contents(__DIR__ . '/.installed'), ENT_QUOTES) ?></strong>.
+                    </p>
+                    <p class="text-slate-400 text-xs mb-6">
+                        Para reinstalar, remova o arquivo <code class="bg-slate-100 px-1 py-0.5 rounded">install/.installed</code>
+                        via gerenciador de arquivos do servidor.
+                    </p>
+                    <a href="../entrar"
+                       class="inline-block px-8 py-3 rounded-xl font-bold text-sm transition-opacity hover:opacity-90"
+                       style="background:#00E5C8;color:#06090F;">
+                        Acessar a Plataforma
+                    </a>
+                </div>
+            </div>
+        </body>
+        </html>
+        <?php
+        exit;
+    }
+}
 
 $step    = (int)($_GET['step'] ?? 1);
 $errors  = [];
@@ -192,13 +239,48 @@ if ($step === 4 && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $configPath = dirname(__DIR__) . '/config/config.php';
 
-    if (file_put_contents($configPath, $configContent) === false) {
-        $errors[] = 'Não foi possível escrever o arquivo config.php. Verifique as permissões da pasta /config.';
-    } else {
-        // Criar arquivo .installed para bloquear o wizard
+    // Checar permissão de escrita nos dois arquivos antes de qualquer coisa
+    if (!is_writable(dirname($configPath))) {
+        $errors[] = 'Sem permissão de escrita na pasta <code>/config</code>. Defina chmod 755 via FTP/cPanel.';
+    } elseif (!is_writable(__DIR__)) {
+        $errors[] = 'Sem permissão de escrita na pasta <code>/install</code> (necessário para criar .installed). Defina chmod 755.';
+    }
+
+    if (empty($errors)) {
+        // 1. Gravar config.php
+        if (file_put_contents($configPath, $configContent) === false) {
+            $errors[] = 'Falha ao gravar <code>config/config.php</code>. Verifique permissões do servidor.';
+        }
+    }
+
+    if (empty($errors)) {
+        // 2. Validar que o config gerado é legível e define DB_HOST (sanity check)
+        ob_start();
+        $testLoad = @include $configPath;
+        ob_end_clean();
+        if ($testLoad === false || !defined('DB_HOST')) {
+            @unlink($configPath);
+            $errors[] = 'O arquivo config.php foi gravado mas não pôde ser carregado. Verifique se o PHP tem permissão de leitura.';
+        }
+    }
+
+    if (empty($errors)) {
+        // 3. Testar conexão com as credenciais gravadas (confirma que o DB ainda está acessível)
+        $dsnFinal = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+        try {
+            new PDO($dsnFinal, DB_USER, DB_PASS, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+        } catch (PDOException $e) {
+            @unlink($configPath);
+            $errors[] = 'Configuração gravada, mas a conexão com o banco falhou: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES) . '. O arquivo config.php foi removido.';
+        }
+    }
+
+    if (empty($errors)) {
+        // 4. Criar .installed — a partir daqui o wizard fica bloqueado para acesso externo
         file_put_contents(__DIR__ . '/.installed', date('Y-m-d H:i:s'));
 
-        // Limpar sessão de instalação
+        // Gravar flag de sessão que permite exibir o step 5 mesmo com .installed presente
+        $_SESSION['install_complete'] = true;
         unset($_SESSION['install']);
 
         header('Location: ?step=5');
@@ -391,17 +473,61 @@ $wizardUrl = htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES);
 
             <!-- STEP 5: Concluído -->
             <?php elseif ($step === 5): ?>
+            <?php
+            // Limpar flag de sessão — após renderizar, tentativas futuras de acessar
+            // /install/?step=5 cairão na tela "já instalado"
+            unset($_SESSION['install_complete']);
+            // Coletar resumo da instalação para exibir
+            $installedAt = trim(@file_get_contents(__DIR__ . '/.installed') ?: date('Y-m-d H:i:s'));
+            $configData  = @include dirname(__DIR__) . '/config/config.php';
+            ?>
             <div class="text-center">
+                <!-- Ícone de sucesso -->
                 <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style="background:#B8FF45;">
                     <svg class="w-8 h-8" fill="none" stroke="#06090F" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
                     </svg>
                 </div>
-                <h2 class="text-xl font-bold mb-2" style="font-family:Roboto,sans-serif;">Instalação Concluída!</h2>
-                <p class="text-slate-500 text-sm mb-6">O sistema Partner Plus foi instalado com sucesso. O wizard foi bloqueado.</p>
-                <a href="../public/"
-                    class="inline-block px-8 py-3 rounded-xl font-bold text-sm text-[#06090F] transition-opacity hover:opacity-90"
-                    style="background:#00E5C8;">
+                <h2 class="text-xl font-bold mb-1" style="font-family:Roboto,sans-serif;">Instalação Concluída!</h2>
+                <p class="text-slate-400 text-xs mb-6">Concluído em <?= htmlspecialchars($installedAt, ENT_QUOTES) ?></p>
+
+                <!-- Checklist do que foi feito -->
+                <div class="bg-slate-50 rounded-xl p-4 text-left space-y-2 mb-6">
+                    <div class="flex items-center gap-2 text-sm text-slate-700">
+                        <svg class="w-4 h-4 flex-shrink-0" style="color:#00E5C8;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Conexão com o banco de dados verificada
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-slate-700">
+                        <svg class="w-4 h-4 flex-shrink-0" style="color:#00E5C8;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Tabelas criadas no banco de dados
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-slate-700">
+                        <svg class="w-4 h-4 flex-shrink-0" style="color:#00E5C8;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Conta de administrador criada
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-slate-700">
+                        <svg class="w-4 h-4 flex-shrink-0" style="color:#00E5C8;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Arquivo <code class="bg-white border border-slate-200 px-1 rounded text-xs">config/config.php</code> gerado
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-slate-700">
+                        <svg class="w-4 h-4 flex-shrink-0" style="color:#00E5C8;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Wizard de instalação bloqueado
+                    </div>
+                </div>
+
+                <a href="../entrar"
+                   class="inline-block px-8 py-3 rounded-xl font-bold text-sm transition-opacity hover:opacity-90"
+                   style="background:#00E5C8;color:#06090F;">
                     Acessar a Plataforma →
                 </a>
             </div>
