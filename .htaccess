@@ -14,9 +14,12 @@ RewriteRule ^public(/.*)?$ - [F,L]
 # Servir assets estáticos diretamente de public/assets/ (sem expor o caminho)
 RewriteRule ^assets/(.+)$ public/assets/$1 [L]
 
-# Tudo o mais vai para public/index.php (rewrite interno)
-# Usa [END] para evitar que Apache/LiteSpeed itere as regras novamente
-# com o caminho já reescrito (evita ^public/.* disparar 403 em 2ª passagem).
+# Rota raiz: /portal/ é um diretório real, !-d bloquearia a reescrita.
+# Regra explícita sem condição de arquivo/diretório para o caminho vazio.
+RewriteRule ^$ public/index.php [QSA,END]
+
+# Tudo o mais vai para public/index.php (rewrite interno).
+# Usa [END] para evitar iteração dupla das regras (Apache/LiteSpeed).
 # public/index.php detecta ausência de config.php e redireciona para /install/.
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
